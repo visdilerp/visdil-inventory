@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Visdil Inventory</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -44,6 +45,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .nav::-webkit-scrollbar{height:0}
 .ni{padding:11px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;font-weight:500}
 .ni:hover{color:var(--text)}.ni.active{color:var(--accent);border-bottom-color:var(--accent)}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
 .main{padding:18px;max-width:1600px;margin:0 auto;width:100%}
 .tab{display:none}.tab.active{display:block}
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:14px}
@@ -138,14 +140,19 @@ input:checked+.tog-s:before{transform:translateX(16px);background:#fff}
 </head>
 <body>
 
-<div id="loginScreen">
+<div class="loading-overlay" id="loadingOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#4f8ef7;border-radius:50%;animation:spin .8s linear infinite"></div>
+  <div id="loadingText" style="font-size:14px;color:#8b90a8">Connecting to database...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<div id="loginScreen" style="display:none">
   <div class="lcard">
     <div class="llogo"><div class="llogo-icon">📦</div><h1>Visdil Inventory</h1><p>Inventory Management System</p></div>
     <div class="fg">
       <input type="text" id="lu" placeholder="Username" />
       <input type="password" id="lp" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()" />
     </div>
-    <button class="btn btn-primary btn-full" onclick="doLogin()">Sign In →</button>
+    <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">Sign In →</button>
     <div class="lerr" id="lerr">Invalid credentials. Please try again.</div>
   </div>
 </div>
@@ -530,6 +537,90 @@ input:checked+.tog-s:before{transform:translateX(16px);background:#fff}
 <div class="notif" id="notif"></div>
 
 <script>
+// ══ SUPABASE CLIENT ══════════════════════════════════════
+const sb = supabase.createClient('https://edonmzdbptdrunwlznko.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkb25temRicHRkcnVud2x6bmtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MjI2NTIsImV4cCI6MjA5NTE5ODY1Mn0.jPR8NOFIslcOyn3stTUZHowk3fKojOfX4aTpt2Nu8X4');
+let _dbProducts=[], _dbPricing={}, _dbUsers=[], _dbLog=[], _rt=null;
+
+window.addEventListener('DOMContentLoaded', async ()=>{
+  try{
+    const {error}=await sb.from('users').select('id').limit(1);
+    if(error){document.getElementById('loadingText').textContent='DB Error: '+error.message+' — Check Supabase RLS settings'; await new Promise(r=>setTimeout(r,4000));}
+  }catch(e){
+    document.getElementById('loadingText').textContent='Connection failed: '+e.message;
+    await new Promise(r=>setTimeout(r,3000));
+  }
+  document.getElementById('loadingOverlay').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+});
+
+async function loadAllData(){
+  try{
+    const [p,pr,u,l]=await Promise.all([
+      sb.from('products').select('*').order('created_at',{ascending:false}),
+      sb.from('pricing').select('*'),
+      sb.from('users').select('*').neq('role','admin'),
+      sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(300)
+    ]);
+    if(p.error)console.error('products error:',p.error.message);
+    if(pr.error)console.error('pricing error:',pr.error.message);
+    if(u.error)console.error('users error:',u.error.message);
+    if(l.error)console.error('log error:',l.error.message);
+    _dbProducts=p.data||[];products=_dbProducts;
+    if(pr.data){_dbPricing={};pr.data.forEach(x=>_dbPricing[x.product_id]=x);}
+    _dbUsers=u.data||[];
+    _dbLog=l.data||[];
+  }catch(e){console.error('loadAllData failed:',e);notif('DB load error: '+e.message,'e');}
+}
+
+function setupRealtime(){
+  if(_rt)sb.removeChannel(_rt);
+  _rt=sb.channel('visdil-live')
+    .on('postgres_changes',{event:'*',schema:'public',table:'products'},async()=>{
+      const {data}=await sb.from('products').select('*').order('created_at',{ascending:false});
+      if(data){_dbProducts=data;products=data;renderProducts();renderStock();renderStatement();renderDash();}
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'pricing'},async()=>{
+      const {data}=await sb.from('pricing').select('*');
+      if(data){_dbPricing={};data.forEach(x=>_dbPricing[x.product_id]=x);renderPricing();renderDash();renderStatement();}
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'activity_log'},async()=>{
+      const {data}=await sb.from('activity_log').select('*').order('created_at',{ascending:false}).limit(300);
+      if(data){_dbLog=data;renderChangelog();renderDash();}
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'users'},async()=>{
+      const {data}=await sb.from('users').select('*').neq('role','admin');
+      if(data){_dbUsers=data;if(cu?.role==='admin')renderUsers();}
+    })
+    .subscribe();
+}
+
+async function addLog(action,product,details,oldVal,newVal){
+  await sb.from('activity_log').insert([{
+    action, product_name:product||'', details:details||'',
+    old_value:oldVal!==undefined&&oldVal!==''?String(oldVal):'',
+    new_value:newVal!==undefined&&newVal!==''?String(newVal):'',
+    done_by:cu?cu.name:'System'
+  }]);
+}
+
+async function delUser(id){
+  if(!confirm('Remove this user?'))return;
+  const {error}=await sb.from('users').delete().eq('id',id);
+  if(error){notif('Delete failed','e');return;}
+  const {data}=await sb.from('users').select('*').neq('role','admin');
+  if(data)_dbUsers=data;
+  renderUsers();notif('Removed','i');
+}
+
+async function setPerm(uid,key,el){
+  const dbKey={seePrice:'see_price',canAdd:'can_add',canEdit:'can_edit',canDelete:'can_delete'}[key]||key;
+  const {error}=await sb.from('users').update({[dbKey]:el.checked}).eq('id',uid);
+  if(error){notif('Update failed','e');el.checked=!el.checked;return;}
+  const u=_dbUsers.find(x=>x.id===uid);if(u){u[dbKey]=el.checked;u[key]=el.checked;}
+  notif('Permission updated','i');
+}
+
+
 // ════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════
@@ -600,24 +691,36 @@ let selectedExportFields=EXPORT_FIELDS.filter(f=>f.def).map(f=>f.key);
 // ════════════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════════════
-function doLogin(){
+async function doLogin(){
   const u=gv('lu').trim(),p=gv('lp');
   g('lerr').style.display='none';
-  if(u==='admin'&&p==='Vpladmin@26'){cu={name:'Super Admin',username:'admin',role:'admin',seePrice:true,canAdd:true,canEdit:true,canDelete:true};startApp();return;}
-  const f=users.find(x=>x.username===u&&x.password===p);
-  if(f){cu=f;startApp();return;}
-  g('lerr').style.display='block';
+  const btn=g('loginBtn');if(btn){btn.textContent='Signing in...';btn.disabled=true;}
+  try{
+    const {data,error}=await sb.from('users').select('*').eq('username',u).eq('password',p).limit(1);
+    if(error){g('lerr').textContent='DB Error: '+error.message;g('lerr').style.display='block';return;}
+    if(!data||data.length===0){g('lerr').textContent='Invalid username or password.';g('lerr').style.display='block';return;}
+    cu=data[0];
+    cu.seePrice=data.see_price;cu.canAdd=data.can_add;cu.canEdit=data.can_edit;cu.canDelete=data.can_delete;
+    await startApp();
+  }catch(e){g('lerr').textContent='Error: '+e.message;g('lerr').style.display='block';}
+  finally{if(btn){btn.textContent='Sign In →';btn.disabled=false;}}
 }
-function startApp(){
+async function startApp(){
   g('loginScreen').style.display='none';g('appScreen').style.display='flex';
   const av=g('uav');av.textContent=cu.name.substring(0,2).toUpperCase();
   av.style.background=cu.role==='admin'?'var(--accent)':cu.role==='manager'?'var(--purple)':'var(--teal)';
   g('uname').textContent=cu.name;
   g('urole').textContent=cu.role==='admin'?'Super Admin':cu.role==='manager'?'Store Manager':'Viewer';
   if(cu.role==='admin'){g('navPricing').style.display='';g('navUsers').style.display='';}
-  g('btnAdd').style.display=(cu.canAdd||cu.role==='admin')?'':'none';
-  if(cu.seePrice||cu.role==='admin')g('dashValueSection').style.display='block';
-  buildExportFieldPicker();popStmtFilters();renderAll();
+  g('btnAdd').style.display=(cu.can_add||cu.canAdd||cu.role==='admin')?'':'none';
+  if(cu.see_price||cu.seePrice||cu.role==='admin')g('dashValueSection').style.display='block';
+  buildExportFieldPicker();
+  document.getElementById('loadingOverlay').style.display='flex';
+  document.getElementById('loadingText').textContent='Loading inventory...';
+  await loadAllData();
+  document.getElementById('loadingOverlay').style.display='none';
+  setupRealtime();
+  popStmtFilters();renderAll();
 }
 function logout(){
   cu=null;g('loginScreen').style.display='flex';g('appScreen').style.display='none';
@@ -648,13 +751,13 @@ function calcVal(basis){return products.reduce((s,p)=>s+(p.pricing?parseFloat(p.
 function renderDash(){
   g('s1').textContent=products.length;g('s2').textContent=products.reduce((s,p)=>s+p.qty,0);
   g('s3').textContent=products.filter(p=>p.qty>=10).length;g('s4').textContent=products.filter(p=>p.qty>0&&p.qty<10).length;g('s5').textContent=products.filter(p=>p.qty===0).length;
-  const showVal=cu?.seePrice||cu?.role==='admin';
+  const showVal=cu?.see_price||cu?.seePrice||cu?.role==='admin';
   g('dashValueSection').style.display=showVal?'block':'none';
   if(showVal){
     g('dv_landed').textContent=fmt(calcVal('landed'));g('dv_list').textContent=fmt(calcVal('list_price'));
     g('dv_bsp').textContent=fmt(calcVal('bsp'));g('dv_dealer').textContent=fmt(calcVal('dealer_price'));g('dv_mrp').textContent=fmt(calcVal('end_user_price'));
   }
-  g('actTbl').innerHTML=changelog.slice(0,15).map(a=>`<tr><td style="color:var(--text2);font-size:11px">${a.date} ${a.time}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product||'—'}</td><td style="color:var(--text2);font-size:12px">${a.details||''}</td><td style="color:var(--red);font-size:12px">${a.oldVal||''}</td><td style="color:var(--green);font-size:12px">${a.newVal||''}</td><td style="color:var(--text2)">${a.by}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
+  g('actTbl').innerHTML=_dbLog.slice(0,15).map(a=>`<tr><td style="color:var(--text2);font-size:11px">${a.date} ${a.time}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product||'—'}</td><td style="color:var(--text2);font-size:12px">${a.details||''}</td><td style="color:var(--red);font-size:12px">${a.oldVal||''}</td><td style="color:var(--green);font-size:12px">${a.newVal||''}</td><td style="color:var(--text2)">${a.by}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
 }
 
 // ════════════════════════════════════════════════════════
@@ -743,7 +846,7 @@ function renderProducts(){
       if(c.key==='img')return `<td>${p.image?`<img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:4px" />`:'<span style="color:var(--text3);font-size:10px">—</span>'}</td>`;
       if(c.key==='qty')return `<td>${sb}</td>`;
       if(c.key==='actions'){
-        const canEd=cu.canEdit||cu.role==='admin',canDel=cu.canDelete||cu.role==='admin',canCl=cu.canAdd||cu.role==='admin';
+        const canEd=cu.can_edit||cu.canEdit||cu.role==='admin',canDel=cu.can_delete||cu.canDelete||cu.role==='admin',canCl=cu.can_add||cu.canAdd||cu.role==='admin';
         return `<td><div style="display:flex;gap:3px;flex-wrap:wrap"><button class="btn btn-ghost btn-xs" onclick="viewProd('${p.id}')">View</button>${canEd?`<button class="btn btn-ghost btn-xs" onclick="openProdModal('${p.id}')">Edit</button>`:''}${canCl?`<button class="btn btn-teal btn-xs" onclick="cloneProd('${p.id}')">Clone</button>`:''}${canDel?`<button class="btn btn-danger btn-xs" onclick="delProd('${p.id}')">Del</button>`:''}</div></td>`;
       }
       if(c.key==='entry_time')return `<td style="font-size:11px">${p.entry_time?new Date(p.entry_time).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'}):'—'}</td>`;
@@ -751,11 +854,11 @@ function renderProducts(){
     }).join('')+'</tr>';
   }).join(''):`<tr><td colspan="${cols.length}" style="text-align:center;padding:28px;color:var(--text3)">No products</td></tr>`;
 }
-function cloneProd(id){
+async function cloneProd(id){
   const p=products.find(x=>x.id===id);if(!p)return;
   const clone={...JSON.parse(JSON.stringify(p)),id:'p'+Date.now(),code:p.code+'-COPY',entry_time:new Date().toISOString()};
   products.push(clone);addLog('Product Cloned',p.short_desc,'Cloned from '+p.code,'','');
-  renderAll();notif('Cloned! Edit the copy to update code.','s');setTimeout(()=>openProdModal(clone.id),300);
+  renderAll();notif('Cloned! Edit the copy.','s');setTimeout(()=>openProdModal(cd.id),300);
 }
 function openProdModal(id){
   const p=id?products.find(x=>x.id===id):null;
@@ -780,7 +883,7 @@ function openProdModal(id){
   } else sv('fet',new Date().toISOString().slice(0,16));
   showO('prodModal');
 }
-function saveProduct(){
+async function saveProduct(){
   const code=gv('fc').trim(),cat=gv('fcat').trim(),brand=gv('fbr').trim(),sd=gv('fsd').trim(),qty=gv('fq');
   if(!code||!cat||!brand||!sd||qty===''){notif('Fill required fields (*)','e');return;}
   const pid=gv('eid');
@@ -789,10 +892,19 @@ function saveProduct(){
   else{products.push({id:'p'+Date.now(),...data,pricing:null});addLog('Product Added',data.short_desc,'Code:'+data.code,'',data.qty);notif('Product added!','s');}
   closeM('prodModal');renderAll();
 }
-function delProd(id){if(!confirm('Delete this product?'))return;const p=products.find(x=>x.id===id);products=products.filter(x=>x.id!==id);addLog('Product Deleted',p?.short_desc,'','','');renderAll();notif('Deleted','e');}
+async function delProd(id){
+  if(!confirm('Delete this product?'))return;
+  const p=_dbProducts.find(x=>x.id===id);
+  const {error}=await sb.from('products').delete().eq('id',id);
+  if(error){notif('Delete failed: '+error.message,'e');return;}
+  await addLog('Product Deleted',p?.short_desc,'','','');
+  const {data}=await sb.from('products').select('*').order('created_at',{ascending:false});
+  if(data){_dbProducts=data;products=data;}
+  renderAll();notif('Deleted','e');
+}
 function viewProd(id){
   const p=products.find(x=>x.id===id);if(!p)return;
-  const cp=cu.role==='admin'||cu.seePrice;
+  const cp=cu.role==='admin'||cu.see_price||cu.seePrice;
   const qc=p.qty===0?'var(--red)':p.qty<10?'var(--amber)':'var(--green)';
   const row=(l,v)=>v?`<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">${l}</div><div>${v}</div></div>`:'';
   const dim=p.dim_l||p.dim_w||p.dim_h?`${p.dim_l||'?'}×${p.dim_w||'?'}×${p.dim_h||'?'} ${p.dim_unit}`:'';
@@ -832,9 +944,16 @@ function renderStock(){
     }).join('')+'</tr>';
   }).join('');
 }
-function updateQty(id){
+async function updateQty(id){
   const inp=g('qi_'+id);if(!inp)return;const nq=parseInt(inp.value);if(isNaN(nq)||nq<0){notif('Invalid quantity','e');return;}
-  const p=products.find(x=>x.id===id);if(p){const old=p.qty;p.qty=nq;addLog('Stock Updated',p.short_desc,`${old} → ${nq}`,old,nq);renderAll();notif('Stock updated!','s');}
+  const p=_dbProducts.find(x=>x.id===id);if(!p)return;
+  const old=p.qty;
+  const {error}=await sb.from('products').update({qty:nq,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){notif('Update failed: '+error.message,'e');return;}
+  await addLog('Stock Updated',p.short_desc,`${old} → ${nq}`,old,nq);
+  const {data}=await sb.from('products').select('*').order('created_at',{ascending:false});
+  if(data){_dbProducts=data;products=data;}
+  renderAll();notif('Stock updated!','s');
 }
 
 // ════════════════════════════════════════════════════════
@@ -845,13 +964,20 @@ function renderPricing(){
   let fl=products.filter(p=>!s||(p.code+p.short_desc+p.brand).toLowerCase().includes(s));
   fl=sortArr(fl,gv('pricingSort'));
   g('pricingThead').innerHTML='<tr>'+cols.map(c=>`<th style="min-width:${c.w||80}px">${c.label}</th>`).join('')+'</tr>';
-  g('priceTbl').innerHTML=fl.map(p=>{const pr=p.pricing||{};const f=k=>pr[k]?`<span class="pv">₹${parseFloat(pr[k]).toFixed(2)}</span>`:`<span class="ph">—</span>`;return '<tr>'+cols.map(c=>{if(c.key==='actions')return `<td><button class="btn btn-ghost btn-xs" onclick="openPriceModal('${p.id}')">Set</button></td>`;if(c.key==='short_desc')return `<td><strong>${p.short_desc}</strong></td>`;if(PRICE_KEYS.includes(c.key))return `<td>${f(c.key)}</td>`;return `<td>${p[c.key]||'—'}</td>`;}).join('')+'</tr>';}).join('');
+  g('priceTbl').innerHTML=fl.map(p=>{const pr=_dbPricing[p.id]||{};const f=k=>pr[k]?`<span class="pv">₹${parseFloat(pr[k]).toFixed(2)}</span>`:`<span class="ph">—</span>`;return '<tr>'+cols.map(c=>{if(c.key==='actions')return `<td><button class="btn btn-ghost btn-xs" onclick="openPriceModal('${p.id}')">Set</button></td>`;if(c.key==='short_desc')return `<td><strong>${p.short_desc}</strong></td>`;if(PRICE_KEYS.includes(c.key))return `<td>${f(c.key)}</td>`;return `<td>${p[c.key]||'—'}</td>`;}).join('')+'</tr>';}).join('');
 }
 function openPriceModal(id){const p=products.find(x=>x.id===id);if(!p)return;sv('epid',id);g('pmProd').textContent=`${p.brand} — ${p.short_desc} ${p.variant||''}`;const pr=p.pricing||{};['p1','p2','p3','p4','p5'].forEach((f,i)=>sv(f,pr[PRICE_KEYS[i]]||''));showO('priceModal');}
-function savePricing(){
-  const id=gv('epid');const p=products.find(x=>x.id===id);if(!p)return;
-  const old=p.pricing?{...p.pricing}:{};p.pricing={landed:fv('p1'),list_price:fv('p2'),bsp:fv('p3'),dealer_price:fv('p4'),end_user_price:fv('p5')};
-  addLog('Price Set',p.short_desc,'EndUser:₹'+p.pricing.end_user_price,old.end_user_price||0,p.pricing.end_user_price);
+async function savePricing(){
+  const id=gv('epid');const p=_dbProducts.find(x=>x.id===id);if(!p)return;
+  const oldPr=_dbPricing[id];
+  const newPr={product_id:id,landed:fv('p1'),list_price:fv('p2'),bsp:fv('p3'),dealer_price:fv('p4'),end_user_price:fv('p5'),updated_at:new Date().toISOString()};
+  let err;
+  if(oldPr){const r=await sb.from('pricing').update(newPr).eq('product_id',id);err=r.error;}
+  else{const r=await sb.from('pricing').insert([newPr]);err=r.error;}
+  if(err){notif('Save failed: '+err.message,'e');return;}
+  await addLog('Price Set',p.short_desc,'EndUser:₹'+newPr.end_user_price,oldPr?.end_user_price||0,newPr.end_user_price);
+  const {data}=await sb.from('pricing').select('*');
+  if(data){_dbPricing={};data.forEach(x=>_dbPricing[x.product_id]=x);}
   closeM('priceModal');renderPricing();renderDash();renderStatement();notif('Pricing saved!','s');
 }
 
@@ -913,19 +1039,18 @@ function exportStmtRowsPDF(rows,basis,scope){
 // ════════════════════════════════════════════════════════
 // CHANGELOG
 // ════════════════════════════════════════════════════════
-function addLog(action,product,details,oldVal,newVal){
-  const now=new Date();
-  changelog.unshift({id:'l'+Date.now(),date:now.toLocaleDateString('en-IN'),time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),action,product:product||'',details:details||'',oldVal:oldVal!==undefined&&oldVal!==''?String(oldVal):'',newVal:newVal!==undefined&&newVal!==''?String(newVal):'',by:cu?cu.name:'System'});
-  if(changelog.length>500)changelog.pop();
-}
+// addLog defined in Supabase init block above
 function renderChangelog(){
   const s=gv('clsrch').toLowerCase(),f=gv('clFilter');
-  const fl=changelog.filter(l=>(!f||l.action===f)&&(!s||(l.product+l.details+l.by+l.action).toLowerCase().includes(s)));
-  g('clTbl').innerHTML=fl.length?fl.map(l=>`<tr><td style="font-size:11px;color:var(--text2)">${l.date}</td><td style="font-size:11px;color:var(--text2)">${l.time}</td><td><span class="log-badge">${l.action}</span></td><td style="font-size:12px">${l.product}</td><td style="font-size:12px;color:var(--text2)">${l.details}</td><td style="font-size:12px;color:var(--red)">${l.oldVal}</td><td style="font-size:12px;color:var(--green)">${l.newVal}</td><td style="font-size:12px;color:var(--text2)">${l.by}</td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">No log entries</td></tr>';
+  const fl=_dbLog.filter(l=>(!f||l.action===f)&&(!s||(l.product_name+l.details+l.done_by+l.action).toLowerCase().includes(s)));
+  g('clTbl').innerHTML=fl.length?fl.map(l=>{
+    const dt=new Date(l.created_at);
+    return `<tr><td style="font-size:11px;color:var(--text2)">${dt.toLocaleDateString('en-IN')}</td><td style="font-size:11px;color:var(--text2)">${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td><td><span class="log-badge">${l.action}</span></td><td style="font-size:12px">${l.product_name||''}</td><td style="font-size:12px;color:var(--text2)">${l.details||''}</td><td style="font-size:12px;color:var(--red)">${l.old_value||''}</td><td style="font-size:12px;color:var(--green)">${l.new_value||''}</td><td style="font-size:12px;color:var(--text2)">${l.done_by||''}</td></tr>`;
+  }).join(''):'<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">No log entries</td></tr>';
 }
 function exportChangelogExcel(){
   const headers=['Date','Time','Action','Product','Details','Old Value','New Value','By'];
-  const data=[headers,...changelog.map(l=>[l.date,l.time,l.action,l.product,l.details,l.oldVal,l.newVal,l.by])];
+  const data=[headers,..._dbLog.map(l=>{const dt=new Date(l.created_at);return [dt.toLocaleDateString('en-IN'),dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),l.action,l.product_name||'',l.details||'',l.old_value||'',l.new_value||'',l.done_by||''];})];
   const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:18}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Change Log');
   XLSX.writeFile(wb,`Visdil_ChangeLog_${yyyymmdd()}.xlsx`);notif('Exported!','s');
@@ -935,18 +1060,21 @@ function exportChangelogExcel(){
 // USERS & PERMISSIONS
 // ════════════════════════════════════════════════════════
 function renderUsers(){
-  g('userList').innerHTML=users.map(u=>`<div class="ucard"><div style="display:flex;align-items:center;gap:10px"><div class="av" style="background:${u.role==='manager'?'var(--purple)':'var(--teal)'}">${u.name.substring(0,2).toUpperCase()}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${u.name}</div><div style="font-size:12px;color:var(--text2)">@${u.username} · <span class="badge ${u.role==='manager'?'bp':'bt'}">${u.role==='manager'?'Manager':'Viewer'}</span></div></div><button class="btn btn-danger btn-xs" onclick="delUser('${u.id}')">Remove</button></div></div>`).join('')||'<div style="color:var(--text3);padding:12px;font-size:13px">No users</div>';
-  const PERMS=[{key:'seePrice',label:'See Pricing',sub:'View all price fields & stock values'},{key:'canAdd',label:'Add Products',sub:'Create new product entries'},{key:'canEdit',label:'Edit Products & Stock',sub:'Modify products, update qty'},{key:'canDelete',label:'Delete Products',sub:'Remove product records'}];
-  g('permList').innerHTML=users.map(u=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><div class="av" style="width:22px;height:22px;font-size:10px;background:${u.role==='manager'?'var(--purple)':'var(--teal)'}">${u.name.substring(0,2).toUpperCase()}</div>${u.name} <span style="font-size:11px;color:var(--text2)">@${u.username}</span></div>${PERMS.map(p=>`<div class="prow"><div><div style="font-size:13px">${p.label}</div><div style="font-size:11px;color:var(--text2)">${p.sub}</div></div><label class="tog"><input type="checkbox" ${u[p.key]?'checked':''} onchange="setPerm('${u.id}','${p.key}',this)" /><span class="tog-s"></span></label></div>`).join('')}</div>`).join('')||'<div style="color:var(--text3);font-size:13px">No users</div>';
+  g('userList').innerHTML=_dbUsers.map(u=>`<div class="ucard"><div style="display:flex;align-items:center;gap:10px"><div class="av" style="background:${u.role==='manager'?'var(--purple)':'var(--teal)'}">${u.name.substring(0,2).toUpperCase()}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${u.name}</div><div style="font-size:12px;color:var(--text2)">@${u.username} · <span class="badge ${u.role==='manager'?'bp':'bt'}">${u.role==='manager'?'Manager':'Viewer'}</span></div></div><button class="btn btn-danger btn-xs" onclick="delUser('${u.id}')">Remove</button></div></div>`).join('')||'<div style="color:var(--text3);padding:12px;font-size:13px">No users</div>';
+
+  const PERMS=[{key:'see_price',label:'See Pricing',sub:'View all price fields & stock values'},{key:'can_add',label:'Add Products',sub:'Create new product entries'},{key:'can_edit',label:'Edit Products & Stock',sub:'Modify products and update qty'},{key:'can_delete',label:'Delete Products',sub:'Remove product records'}];
+  g('permList').innerHTML=_dbUsers.map(u=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><div class="av" style="width:22px;height:22px;font-size:10px;background:${u.role==='manager'?'var(--purple)':'var(--teal)'}">${u.name.substring(0,2).toUpperCase()}</div>${u.name} <span style="font-size:11px;color:var(--text2)">@${u.username}</span></div>${PERMS.map(p=>`<div class="prow"><div><div style="font-size:13px">${p.label}</div><div style="font-size:11px;color:var(--text2)">${p.sub}</div></div><label class="tog"><input type="checkbox" ${u[p.key]?'checked':''} onchange="setPerm('${u.id}','${p.key}',this)" /><span class="tog-s"></span></label></div>`).join('')}</div>`).join('')||'<div style="color:var(--text3);font-size:13px">No users</div>';
 }
 function setPerm(uid,key,el){const u=users.find(x=>x.id===uid);if(u){u[key]=el.checked;notif(`${key} ${el.checked?'enabled':'disabled'} for ${u.name}`,'i');if(cu&&cu.id===uid){cu[key]=el.checked;if(key==='seePrice')renderDash();}}}
 function openUserModal(){['un','uu','up'].forEach(i=>sv(i,''));showO('userModal');}
-function saveUser(){
+async function saveUser(){
   const name=gv('un').trim(),user=gv('uu').trim(),pass=gv('up'),role=gv('ur');
   if(!name||!user||!pass){notif('Fill all fields','e');return;}
-  if(users.find(u=>u.username===user)||user==='admin'){notif('Username taken','e');return;}
-  users.push({id:'u'+Date.now(),name,username:user,password:pass,role,seePrice:false,canAdd:false,canEdit:false,canDelete:false});
-  closeM('userModal');renderUsers();notif('@'+user+' created!','s');
+  const {data:inserted,error}=await sb.from('users').insert([{name,username:user,password:pass,role,see_price:false,can_add:false,can_edit:false,can_delete:false}]).select();
+  if(error){notif(error.code==='23505'?'Username already taken':'Save failed: '+error.message,'e');return;}
+  const {data:ul}=await sb.from('users').select('*').neq('role','admin');
+  if(ul)_dbUsers=ul;
+  closeM('userModal');renderUsers();notif('@'+user+' created! They can now login.','s');
 }
 function delUser(id){if(!confirm('Remove?'))return;users=users.filter(u=>u.id!==id);renderUsers();notif('Removed','i');}
 
@@ -963,7 +1091,7 @@ function renderExport(){
 }
 function toggleExAll(el){document.querySelectorAll('#exTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);if(el.checked)products.forEach(p=>exSel.add(p.id));else exSel.clear();}
 function buildExportFieldPicker(){
-  const cp=cu?.role==='admin'||cu?.seePrice;
+  const cp=cu?.role==='admin'||cu?.see_price||cu?.seePrice;
   const fields=EXPORT_FIELDS.filter(f=>cp||!PRICE_KEYS.includes(f.key));
   g('exportFieldPicker').innerHTML=fields.map(f=>`<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" ${selectedExportFields.includes(f.key)?'checked':''} onchange="toggleExField('${f.key}',this)" />${f.label}</label>`).join('');
 }
@@ -978,7 +1106,7 @@ function doExport(type,mode){
   if(type==='excel'){doExportRowsExcel(rows);return;}
 }
 function doExportRowsExcel(rows){
-  const cp=cu?.role==='admin'||cu?.seePrice;
+  const cp=cu?.role==='admin'||cu?.see_price||cu?.seePrice;
   const fields=selectedExportFields.filter(k=>cp||!PRICE_KEYS.includes(k));
   const LABELS={code:'Code',serial_number:'Serial No',category:'Category',brand:'Brand',variant:'Variant',yom:'YOM',short_desc:'Short Desc',description:'Long Description',remarks:'Remarks',qty:'Qty',location:'Location',storage_area:'Storage Area',package_type:'Package',weight_kg:'Weight(kg)',dimensions:'Dimensions',invoice_no:'Invoice No',invoice_date:'Invoice Date',dc_waybill:'DC/Waybill',entry_time:'Entry Time',landed:'Landed ₹',list_price:'List Price ₹',bsp:'BSP ₹',dealer_price:'Dealer ₹',end_user_price:'End User ₹'};
   const headers=fields.map(k=>LABELS[k]||k);
@@ -988,16 +1116,16 @@ function doExportRowsExcel(rows){
   XLSX.writeFile(wb,`Visdil_Inventory_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
 }
 function exportPricelist(rows){
-  if(cu.role!=='admin'&&!cu.seePrice){notif('No pricing access','e');return;}
+  if(cu.role!=='admin'&&!cu.see_price&&!cu.seePrice){notif('No pricing access','e');return;}
   const priceCat=gv('exPriceCat');const cols=priceCat?{[priceCat]:PRICE_LABELS[priceCat]}:{...PRICE_LABELS};
   const headers=['Code','Category','Brand','Variant','Short Desc',...Object.values(cols)];
-  const data=[headers,...rows.filter(p=>p.pricing).map(p=>[p.code,p.category,p.brand,p.variant||'',p.short_desc,...Object.keys(cols).map(k=>p.pricing?parseFloat(p.pricing[k]||0).toFixed(2):'')])];
+  const data=[headers,...rows.filter(p=>_dbPricing[p.id]).map(p=>[p.code,p.category,p.brand,p.variant||'',p.short_desc,...Object.keys(cols).map(k=>{const pr=_dbPricing[p.id];return pr?parseFloat(pr[k]||0).toFixed(2):'';})]]);
   const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:18}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Price List');
   XLSX.writeFile(wb,`Visdil_PriceList_${yyyymmdd()}.xlsx`);notif('Price list downloaded!','s');
 }
 function exportInvPDF(rows){
-  const cp=cu?.role==='admin'||cu?.seePrice;
+  const cp=cu?.role==='admin'||cu?.see_price||cu?.seePrice;
   const fields=selectedExportFields.filter(k=>(cp||!PRICE_KEYS.includes(k))&&k!=='dimensions');
   const LABELS={code:'Code',serial_number:'S/N',category:'Cat',brand:'Brand',variant:'Variant',yom:'YOM',short_desc:'Short Desc',description:'Description',remarks:'Remarks',qty:'Qty',location:'Location',storage_area:'Storage',package_type:'Pkg',weight_kg:'Wt(kg)',invoice_no:'Invoice',invoice_date:'Inv Date',dc_waybill:'DC',entry_time:'Entry',landed:'Landed',list_price:'List',bsp:'BSP',dealer_price:'Dealer',end_user_price:'End User'};
   const mainFields=fields.filter(k=>k!=='description'&&k!=='remarks');
@@ -1010,7 +1138,7 @@ function exportInvPDF(rows){
     return `<tr>${cells.map(c=>`<td style="width:${colW}%;word-wrap:break-word;overflow-wrap:break-word;white-space:normal">${c}</td>`).join('')}</tr>${desc}`;
   }).join('');
   const totalQty=rows.reduce((s,p)=>s+p.qty,0);
-  const totalVal=cp?rows.reduce((s,p)=>s+(p.pricing?.end_user_price||0)*p.qty,0):null;
+  const totalVal=cp?rows.reduce((s,p)=>s+(_dbPricing[p.id]?.end_user_price||0)*p.qty,0):null;
   printPage('Inventory Report',`<table style="table-layout:fixed;width:100%"><colgroup>${headers.map(()=>`<col style="width:${colW}%" />`).join('')}</colgroup><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table><div class="sum">Records: ${rows.length} | Total Qty: ${totalQty}${totalVal!==null?' | Value (End User): ₹'+totalVal.toLocaleString('en-IN',{minimumFractionDigits:2}):''}</div>`);
 }
 
