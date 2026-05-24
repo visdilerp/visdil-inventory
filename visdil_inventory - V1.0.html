@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visdil Inventory</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;--bg4:#2a2f45;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8eaf0;--text2:#8b90a8;--text3:#454a62;
+  --accent:#4f8ef7;--accent2:#3a6fd4;
+  --green:#2ecc8a;--amber:#f59e0b;--red:#ef4444;
+  --purple:#a78bfa;--teal:#14b8a6;
+  --r:10px;--r2:6px
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 60% 40%,#1a2240,#0f1117 70%)}
+.lcard{background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:44px 40px;width:380px}
+.llogo{text-align:center;margin-bottom:32px}
+.llogo-icon{width:60px;height:60px;background:linear-gradient(135deg,var(--accent),#7c3aed);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px}
+.llogo h1{font-size:21px;font-weight:700}.llogo p{font-size:12px;color:var(--text2);margin-top:5px}
+.fg input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:11px 14px;color:var(--text);font-size:14px;outline:none;transition:border .2s;margin-bottom:12px}
+.fg input:focus{border-color:var(--accent)}
+.lerr{color:var(--red);font-size:13px;text-align:center;margin-top:10px;display:none}
+.btn{padding:8px 14px;border-radius:var(--r2);border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-full{width:100%;justify-content:center;padding:12px;font-size:15px}
+.btn-sm{padding:5px 10px;font-size:12px}.btn-xs{padding:3px 7px;font-size:11px}
+.btn-success{background:var(--green);color:#fff}.btn-danger{background:var(--red);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-amber{background:var(--amber);color:#000}.btn-teal{background:var(--teal);color:#fff}
+#appScreen{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.tlogo{font-size:15px;font-weight:700;color:var(--accent)}
+.live{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.upill{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:24px;padding:4px 11px 4px 5px}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;overflow-x:auto}
+.nav::-webkit-scrollbar{height:0}
+.ni{padding:11px 14px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;font-weight:500}
+.ni:hover{color:var(--text)}.ni.active{color:var(--accent);border-bottom-color:var(--accent)}
+.main{padding:18px;max-width:1600px;margin:0 auto;width:100%}
+.tab{display:none}.tab.active{display:block}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:14px}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px}
+.sc-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sc-val{font-size:22px;font-weight:700}.sc-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.val-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.val-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;transition:all .15s}
+.val-card:hover{border-color:var(--accent);background:rgba(79,142,247,.06)}
+.val-card-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.val-card-amount{font-size:17px;font-weight:700;color:var(--accent)}
+.val-card-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:7px}
+.stt{font-size:15px;font-weight:600}
+.tw{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.tb{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.srch{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:6px 10px;color:var(--text);font-size:13px;outline:none;width:175px}
+.srch:focus{border-color:var(--accent)}
+.flt{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:6px 8px;color:var(--text);font-size:13px;outline:none}
+.ts{overflow-x:auto;max-height:58vh;overflow-y:auto}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 10px;text-align:left;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600;border-bottom:1px solid var(--border);background:var(--bg3);white-space:nowrap;position:sticky;top:0;z-index:2}
+td{padding:8px 10px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.018)}
+.badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:600}
+.bg{background:rgba(46,204,138,.15);color:var(--green)}.ba{background:rgba(245,158,11,.15);color:var(--amber)}
+.br{background:rgba(239,68,68,.15);color:var(--red)}.bb{background:rgba(79,142,247,.15);color:var(--accent)}
+.bp{background:rgba(167,139,250,.15);color:var(--purple)}.bt{background:rgba(20,184,166,.15);color:var(--teal)}
+input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:center;justify-content:center;padding:12px}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:720px;max-height:93vh;overflow-y:auto}
+.modal-xl{max-width:960px}.modal-sm{max-width:440px}
+.mhd{padding:15px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1}
+.mt2{font-size:15px;font-weight:600}
+.mx{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;width:26px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center}
+.mx:hover{background:var(--bg3);color:var(--text)}
+.mbd{padding:15px 20px}.mft{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:7px;position:sticky;bottom:0;background:var(--bg2)}
+.fg2{margin-bottom:11px}
+.fg2 label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+.fg2 input,.fg2 select,.fg2 textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:8px 10px;color:var(--text);font-size:13px;outline:none;transition:border .2s}
+.fg2 input:focus,.fg2 select:focus,.fg2 textarea:focus{border-color:var(--accent)}
+.fg2 textarea{resize:vertical;min-height:64px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.frow4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:9px}
+.fsec{margin-bottom:14px;padding-bottom:13px;border-bottom:1px solid var(--border)}
+.fsec-t{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;font-weight:600}
+.tog{position:relative;width:36px;height:20px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-s{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;cursor:pointer;transition:.2s}
+.tog-s:before{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;background:var(--text2);border-radius:50%;transition:.2s}
+input:checked+.tog-s{background:var(--accent);border-color:var(--accent)}
+input:checked+.tog-s:before{transform:translateX(16px);background:#fff}
+.ucard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:7px}
+.prow{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.qin{width:68px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:5px 7px;color:var(--text);font-size:13px;text-align:center;outline:none}
+.qin:focus{border-color:var(--accent)}
+.pv{color:var(--green);font-weight:600;font-family:monospace;font-size:13px}
+.ph{color:var(--text3);font-style:italic;font-size:11px}
+.expgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.expc{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:14px;cursor:pointer;transition:border .15s;text-align:center}
+.expc:hover{border-color:var(--accent)}
+.expc-icon{font-size:26px;margin-bottom:5px}.expc-t{font-weight:600;margin-bottom:2px;font-size:13px}.expc-s{font-size:11px;color:var(--text2)}
+.img-up{border:2px dashed var(--border2);border-radius:var(--r2);padding:18px;text-align:center;cursor:pointer;transition:border .2s;position:relative}
+.img-up:hover{border-color:var(--accent)}
+.img-up input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.img-prev{width:100%;max-height:140px;object-fit:contain;border-radius:6px;margin-top:7px}
+.file-up{border:1px dashed var(--border2);border-radius:var(--r2);padding:9px 12px;display:flex;align-items:center;gap:9px;cursor:pointer;position:relative;transition:border .2s}
+.file-up:hover{border-color:var(--accent)}
+.file-up input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.file-name{font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.field-list{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+.field-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:7px 10px;display:flex;align-items:center;gap:8px;cursor:grab;user-select:none}
+.field-item.dragging{opacity:.4}
+.drag-handle{color:var(--text3);font-size:14px;cursor:grab}
+.stmt-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stmt-card{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:12px 14px}
+.stmt-card-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.stmt-card-val{font-size:19px;font-weight:700}
+.log-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;background:rgba(79,142,247,.15);color:var(--accent)}
+.notif{position:fixed;bottom:18px;right:18px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 15px;font-size:13px;z-index:9999;display:none;max-width:300px}
+.notif.show{display:block;animation:nf .2s ease}
+.ns{border-left:3px solid var(--green)}.ne{border-left:3px solid var(--red)}.ni2{border-left:3px solid var(--accent)}
+@keyframes nf{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+@media print{.topbar,.nav,.tb,.btn,.overlay,.notif{display:none!important}body{background:#fff;color:#000}.tw{border:1px solid #ccc}th{background:#f0f0f0!important;color:#333!important}td{color:#333!important;border-color:#ddd!important}}
+@media(max-width:700px){.stats,.val-grid,.stmt-summary{grid-template-columns:1fr 1fr}.frow,.frow3,.frow4{grid-template-columns:1fr}.main{padding:10px}.expgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="llogo"><div class="llogo-icon">📦</div><h1>Visdil Inventory</h1><p>Inventory Management System</p></div>
+    <div class="fg">
+      <input type="text" id="lu" placeholder="Username" />
+      <input type="password" id="lp" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Sign In →</button>
+    <div class="lerr" id="lerr">Invalid credentials. Please try again.</div>
+  </div>
+</div>
+
+<div id="appScreen">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">📦</span>
+      <span class="tlogo">Visdil Inventory</span>
+      <span class="live"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="upill">
+        <div class="av" id="uav"></div>
+        <div><div style="font-size:13px;font-weight:500" id="uname"></div><div style="font-size:11px;color:var(--text2)" id="urole"></div></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="ni active" onclick="showTab('dashboard')">📊 Dashboard</div>
+    <div class="ni" onclick="showTab('products')">📋 Products</div>
+    <div class="ni" onclick="showTab('stock')">📦 Stock</div>
+    <div class="ni" id="navPricing" style="display:none" onclick="showTab('pricing')">💰 Pricing</div>
+    <div class="ni" onclick="showTab('statement')">📑 Stock Statement</div>
+    <div class="ni" onclick="showTab('changelog')">📝 Change Log</div>
+    <div class="ni" id="navUsers" style="display:none" onclick="showTab('users')">👥 Users</div>
+    <div class="ni" onclick="showTab('export')">⬇️ Export</div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="tab active" id="t-dashboard">
+      <div class="stats">
+        <div class="sc"><div class="sc-label">Total SKUs</div><div class="sc-val" id="s1">0</div></div>
+        <div class="sc"><div class="sc-label">Total Units</div><div class="sc-val" style="color:var(--accent)" id="s2">0</div></div>
+        <div class="sc"><div class="sc-label">In Stock</div><div class="sc-val" style="color:var(--green)" id="s3">0</div><div class="sc-sub">≥10 units</div></div>
+        <div class="sc"><div class="sc-label">Low Stock</div><div class="sc-val" style="color:var(--amber)" id="s4">0</div><div class="sc-sub">1–9 units</div></div>
+        <div class="sc"><div class="sc-label">Out of Stock</div><div class="sc-val" style="color:var(--red)" id="s5">0</div></div>
+      </div>
+      <div id="dashValueSection" style="display:none;margin-bottom:16px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📊 Stock Value — Click any card to open detailed statement</div>
+        <div class="val-grid">
+          <div class="val-card" onclick="openStmtModal('landed')"><div class="val-card-label">Landed Value</div><div class="val-card-amount" id="dv_landed">₹0.00</div><div class="val-card-sub">Cost × qty</div></div>
+          <div class="val-card" onclick="openStmtModal('list_price')"><div class="val-card-label">List Price Value</div><div class="val-card-amount" id="dv_list">₹0.00</div><div class="val-card-sub">List × qty</div></div>
+          <div class="val-card" onclick="openStmtModal('bsp')"><div class="val-card-label">BSP Value</div><div class="val-card-amount" id="dv_bsp">₹0.00</div><div class="val-card-sub">BSP × qty</div></div>
+          <div class="val-card" onclick="openStmtModal('dealer_price')"><div class="val-card-label">Dealer Value</div><div class="val-card-amount" id="dv_dealer">₹0.00</div><div class="val-card-sub">Dealer × qty</div></div>
+          <div class="val-card" onclick="openStmtModal('end_user_price')"><div class="val-card-label">MRP / End User</div><div class="val-card-amount" id="dv_mrp">₹0.00</div><div class="val-card-sub">MRP × qty</div></div>
+        </div>
+      </div>
+      <div class="sh"><div class="stt">Recent Activity</div><button class="btn btn-ghost btn-sm" onclick="exportChangelogExcel()">⬇ Export Log</button></div>
+      <div class="tw"><table style="table-layout:auto">
+        <thead><tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old</th><th>New</th><th>By</th></tr></thead>
+        <tbody id="actTbl"></tbody>
+      </table></div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="tab" id="t-products">
+      <div class="sh">
+        <div class="stt">Product Catalog</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="openColModal('products')">⚙ Columns</button>
+          <button class="btn btn-ghost btn-sm" onclick="tabExport('products')">⬇ Export</button>
+          <button class="btn btn-primary btn-sm" id="btnAdd" onclick="openProdModal()">+ Add Product</button>
+        </div>
+      </div>
+      <div class="tw">
+        <div class="tb">
+          <input class="srch" id="psrch" placeholder="Search..." oninput="renderProducts()" />
+          <select class="flt" id="catF" onchange="renderProducts()"><option value="">All Categories</option></select>
+          <select class="flt" id="brandF" onchange="renderProducts()"><option value="">All Brands</option></select>
+          <select class="flt" id="prodSort" onchange="renderProducts()">
+            <option value="">Sort: Default</option><option value="code">Code A-Z</option>
+            <option value="short_desc">Name A-Z</option><option value="qty_asc">Qty ↑</option>
+            <option value="qty_desc">Qty ↓</option><option value="category">Category</option><option value="brand">Brand</option>
+          </select>
+        </div>
+        <div class="ts"><table style="table-layout:auto"><thead id="prodThead"></thead><tbody id="prodTbl"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- STOCK -->
+    <div class="tab" id="t-stock">
+      <div class="sh">
+        <div class="stt">Stock Management</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="openColModal('stock')">⚙ Columns</button>
+          <button class="btn btn-ghost btn-sm" onclick="tabExport('stock')">⬇ Export</button>
+        </div>
+      </div>
+      <div class="tw">
+        <div class="tb">
+          <input class="srch" id="ssrch" placeholder="Search..." oninput="renderStock()" />
+          <select class="flt" id="stockSort" onchange="renderStock()">
+            <option value="">Default</option><option value="qty_asc">Qty ↑</option>
+            <option value="qty_desc">Qty ↓</option><option value="code">Code A-Z</option><option value="status">Status</option>
+          </select>
+        </div>
+        <div class="ts"><table style="table-layout:auto"><thead id="stockThead"></thead><tbody id="stockTbl"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- PRICING -->
+    <div class="tab" id="t-pricing">
+      <div class="sh">
+        <div class="stt">Pricing Management</div>
+        <div style="display:flex;gap:6px">
+          <span class="badge bb" style="align-self:center">Admin Only</span>
+          <button class="btn btn-ghost btn-sm" onclick="openColModal('pricing')">⚙ Columns</button>
+          <button class="btn btn-ghost btn-sm" onclick="tabExport('pricing')">⬇ Export</button>
+        </div>
+      </div>
+      <div class="tw">
+        <div class="tb">
+          <input class="srch" id="prsrch" placeholder="Search..." oninput="renderPricing()" />
+          <select class="flt" id="pricingSort" onchange="renderPricing()">
+            <option value="">Default</option><option value="code">Code A-Z</option>
+            <option value="enduser_asc">End User ↑</option><option value="enduser_desc">End User ↓</option>
+            <option value="landed_asc">Landed ↑</option><option value="landed_desc">Landed ↓</option>
+          </select>
+        </div>
+        <div class="ts"><table style="table-layout:auto"><thead id="pricingThead"></thead><tbody id="priceTbl"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- STOCK STATEMENT -->
+    <div class="tab" id="t-statement">
+      <div class="sh">
+        <div class="stt">Stock Statement</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="exportStmtExcel()">⬇ Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportStmtPDF()">📄 PDF</button>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:13px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:9px">Filters & Price Basis</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="flt" id="stmtCat" onchange="renderStatement()"><option value="">All Categories</option></select>
+          <select class="flt" id="stmtBrand" onchange="renderStatement()"><option value="">All Brands</option></select>
+          <select class="flt" id="stmtStatus" onchange="renderStatement()">
+            <option value="">All Status</option><option value="in">In Stock (≥10)</option>
+            <option value="low">Low Stock (1-9)</option><option value="out">Out of Stock</option>
+          </select>
+          <select class="flt" id="stmtBasis" onchange="renderStatement()" style="border-color:var(--accent);color:var(--accent);font-weight:600">
+            <option value="landed">Landed Price</option><option value="list_price">List Price</option>
+            <option value="bsp">BSP</option><option value="dealer_price">Dealer Price</option>
+            <option value="end_user_price">End User / MRP</option>
+          </select>
+          <input class="srch" id="stmtSrch" placeholder="Search product..." oninput="renderStatement()" />
+        </div>
+      </div>
+      <div class="stmt-summary" id="stmtSummary"></div>
+      <div class="tw">
+        <div class="ts"><table style="table-layout:auto">
+          <thead id="stmtThead"><tr>
+            <th><input type="checkbox" id="stmtSelAll" onchange="toggleStmtSel(this)" /></th>
+            <th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th>
+            <th>Qty</th><th>Status</th><th>Unit Price (₹)</th><th>Stock Value (₹)</th>
+          </tr></thead>
+          <tbody id="stmtTbl"></tbody>
+          <tfoot id="stmtFoot"></tfoot>
+        </table></div>
+      </div>
+      <p style="font-size:12px;color:var(--text2);margin-top:9px">💡 Tick products to export a partial statement.</p>
+    </div>
+
+    <!-- CHANGELOG -->
+    <div class="tab" id="t-changelog">
+      <div class="sh"><div class="stt">Inventory Change Log</div><button class="btn btn-ghost btn-sm" onclick="exportChangelogExcel()">⬇ Export</button></div>
+      <div class="tw">
+        <div class="tb">
+          <input class="srch" id="clsrch" placeholder="Search..." oninput="renderChangelog()" />
+          <select class="flt" id="clFilter" onchange="renderChangelog()">
+            <option value="">All Actions</option><option value="Stock Updated">Stock Updated</option>
+            <option value="Product Added">Product Added</option><option value="Product Updated">Product Updated</option>
+            <option value="Product Deleted">Product Deleted</option><option value="Price Set">Price Set</option>
+            <option value="Product Cloned">Product Cloned</option>
+          </select>
+        </div>
+        <div class="ts"><table style="table-layout:auto">
+          <thead><tr><th>Date</th><th>Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old Value</th><th>New Value</th><th>By</th></tr></thead>
+          <tbody id="clTbl"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="tab" id="t-users">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div>
+          <div class="sh"><div class="stt">Users</div><button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Add User</button></div>
+          <div id="userList"></div>
+        </div>
+        <div>
+          <div class="sh"><div class="stt">User Permissions</div></div>
+          <div id="permList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="tab" id="t-export">
+      <div class="sh"><div class="stt">Export & Print</div></div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:13px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:9px">Filters</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <select class="flt" id="exCatF"><option value="">All Categories</option></select>
+          <select class="flt" id="exBrandF"><option value="">All Brands</option></select>
+          <select class="flt" id="exPriceCat"><option value="">All Price Types</option><option value="landed">Landed</option><option value="list_price">List Price</option><option value="bsp">BSP</option><option value="dealer_price">Dealer Price</option><option value="end_user_price">End User/MRP</option></select>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:13px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:9px">Select Fields to Export</div>
+        <div id="exportFieldPicker" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px"></div>
+      </div>
+      <div class="expgrid">
+        <div class="expc" onclick="doExport('pdf','all')"><div class="expc-icon">📄</div><div class="expc-t">Full Inventory PDF</div><div class="expc-s">Landscape, fits page</div></div>
+        <div class="expc" onclick="doExport('excel','all')"><div class="expc-icon">📊</div><div class="expc-t">Full Inventory Excel</div><div class="expc-s">All selected fields</div></div>
+        <div class="expc" onclick="doExport('pricelist','all')"><div class="expc-icon">💰</div><div class="expc-t">Price List</div><div class="expc-s">By category / price type</div></div>
+        <div class="expc" onclick="doExport('pdf','sel')"><div class="expc-icon">📋</div><div class="expc-t">Selected — PDF</div><div class="expc-s">Ticked rows only</div></div>
+        <div class="expc" onclick="doExport('excel','sel')"><div class="expc-icon">📈</div><div class="expc-t">Selected — Excel</div><div class="expc-s">Ticked rows only</div></div>
+        <div class="expc" onclick="doExport('stock','all')"><div class="expc-icon">📦</div><div class="expc-t">Stock Report PDF</div><div class="expc-s">Qty &amp; status only</div></div>
+      </div>
+      <div class="sh">
+        <div class="stt">Select Products</div>
+        <label style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px"><input type="checkbox" id="exAll" onchange="toggleExAll(this)" /> Select All</label>
+      </div>
+      <div class="tw">
+        <div class="tb"><input class="srch" id="exsrch" placeholder="Search..." oninput="renderExport()" /></div>
+        <div class="ts"><table style="table-layout:auto">
+          <thead><tr><th></th><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Short Desc</th><th>YOM</th><th>Qty</th><th>Status</th></tr></thead>
+          <tbody id="exTbl"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="overlay" id="prodModal" onclick="bgc(event,'prodModal')">
+  <div class="modal modal-xl">
+    <div class="mhd"><div class="mt2" id="pmT">Add Product</div><button class="mx" onclick="closeM('prodModal')">✕</button></div>
+    <div class="mbd">
+      <input type="hidden" id="eid" />
+      <div class="fsec">
+        <div class="fsec-t">📦 Identification</div>
+        <div class="frow4">
+          <div class="fg2"><label>Product Code *</label><input type="text" id="fc" /></div>
+          <div class="fg2"><label>Serial Number</label><input type="text" id="fsn" /></div>
+          <div class="fg2"><label>YOM (MM/YY or YY)</label><input type="text" id="fyom" /></div>
+          <div class="fg2"><label>Category *</label><input type="text" id="fcat" /></div>
+        </div>
+        <div class="frow3">
+          <div class="fg2"><label>Brand *</label><input type="text" id="fbr" /></div>
+          <div class="fg2"><label>Variant</label><input type="text" id="fvar" /></div>
+          <div class="fg2"><label>Package Type</label><input type="text" id="fpkg" /></div>
+        </div>
+        <div class="fg2"><label>Short Description *</label><input type="text" id="fsd" /></div>
+        <div class="fg2"><label>Detailed Description</label><textarea id="fdd"></textarea></div>
+        <div class="fg2"><label>Remarks</label><textarea id="frm" style="min-height:50px"></textarea></div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-t">📍 Stock &amp; Location</div>
+        <div class="frow3">
+          <div class="fg2"><label>Stock Quantity *</label><input type="number" id="fq" min="0" /></div>
+          <div class="fg2"><label>Stock Location</label><input type="text" id="fl" /></div>
+          <div class="fg2"><label>Storage Area</label><input type="text" id="fst" /></div>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-t">📐 Dimensions &amp; Weight</div>
+        <div class="frow4">
+          <div class="fg2"><label>Length</label><input type="number" id="fdl" min="0" step="0.001" /></div>
+          <div class="fg2"><label>Width</label><input type="number" id="fdw" min="0" step="0.001" /></div>
+          <div class="fg2"><label>Height</label><input type="number" id="fdh" min="0" step="0.001" /></div>
+          <div class="fg2"><label>Unit</label><select id="fdu"><option value="mm">mm</option><option value="cm">cm</option><option value="mts">mts</option></select></div>
+        </div>
+        <div class="frow"><div class="fg2"><label>Weight (kg)</label><input type="number" id="fwt" min="0" step="0.001" /></div><div></div></div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-t">🖼 Product Image</div>
+        <div class="img-up">
+          <input type="file" id="fimg" accept="image/*" onchange="handleImgUpload()" />
+          <div id="imgPlaceholder" style="color:var(--text2);font-size:13px"><div style="font-size:26px;margin-bottom:5px">🖼</div>Click or drag to upload image</div>
+          <img id="imgPreview" class="img-prev" style="display:none" />
+          <button id="imgClear" style="display:none;margin-top:7px;position:relative;z-index:1" class="btn btn-ghost btn-xs" onclick="clearImg(event)">✕ Remove</button>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-t">📎 Documents</div>
+        <div class="frow">
+          <div class="fg2"><label>Invoice PDF</label>
+            <div class="file-up"><input type="file" id="finvf" accept=".pdf" onchange="handleFileUpload('finvf','invFileName','inv')" /><span style="font-size:16px">📄</span><span class="file-name" id="invFileName">Click to upload Invoice PDF</span><button class="btn btn-ghost btn-xs" id="invClear" style="display:none;position:relative;z-index:1" onclick="clearFile(event,'inv')">✕</button></div>
+          </div>
+          <div class="fg2"><label>DC / Waybill PDF</label>
+            <div class="file-up"><input type="file" id="fdcf" accept=".pdf" onchange="handleFileUpload('fdcf','dcFileName','dc')" /><span style="font-size:16px">📄</span><span class="file-name" id="dcFileName">Click to upload DC / Waybill PDF</span><button class="btn btn-ghost btn-xs" id="dcClear" style="display:none;position:relative;z-index:1" onclick="clearFile(event,'dc')">✕</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="fsec" style="border:none;margin:0;padding:0">
+        <div class="fsec-t">🧾 Entry &amp; Documents</div>
+        <div class="frow3">
+          <div class="fg2"><label>Entry Date &amp; Time</label><input type="datetime-local" id="fet" /></div>
+          <div class="fg2"><label>Invoice Number</label><input type="text" id="finv" /></div>
+          <div class="fg2"><label>Invoice Date</label><input type="date" id="find" /></div>
+        </div>
+        <div class="frow"><div class="fg2"><label>DC / Waybill Number</label><input type="text" id="fdc" /></div><div></div></div>
+      </div>
+    </div>
+    <div class="mft"><button class="btn btn-ghost" onclick="closeM('prodModal')">Cancel</button><button class="btn btn-primary" onclick="saveProduct()">Save Product</button></div>
+  </div>
+</div>
+
+<!-- PRICING MODAL -->
+<div class="overlay" id="priceModal" onclick="bgc(event,'priceModal')">
+  <div class="modal modal-sm">
+    <div class="mhd"><div class="mt2">Set Pricing</div><button class="mx" onclick="closeM('priceModal')">✕</button></div>
+    <div class="mbd">
+      <input type="hidden" id="epid" />
+      <div id="pmProd" style="font-size:14px;font-weight:600;margin-bottom:12px;padding:9px 11px;background:var(--bg3);border-radius:var(--r2)"></div>
+      <div style="background:rgba(79,142,247,.08);border-radius:var(--r2);padding:7px 11px;font-size:12px;color:var(--text2);margin-bottom:12px">🔒 Visible only to permitted users.</div>
+      <div class="frow"><div class="fg2"><label>Landed (₹)</label><input type="number" id="p1" min="0" step="0.01" /></div><div class="fg2"><label>List Price (₹)</label><input type="number" id="p2" min="0" step="0.01" /></div></div>
+      <div class="frow"><div class="fg2"><label>BSP (₹)</label><input type="number" id="p3" min="0" step="0.01" /></div><div class="fg2"><label>Dealer Price (₹)</label><input type="number" id="p4" min="0" step="0.01" /></div></div>
+      <div class="fg2"><label>End User / MRP (₹)</label><input type="number" id="p5" min="0" step="0.01" /></div>
+    </div>
+    <div class="mft"><button class="btn btn-ghost" onclick="closeM('priceModal')">Cancel</button><button class="btn btn-primary" onclick="savePricing()">Save</button></div>
+  </div>
+</div>
+
+<!-- USER MODAL -->
+<div class="overlay" id="userModal" onclick="bgc(event,'userModal')">
+  <div class="modal modal-sm">
+    <div class="mhd"><div class="mt2">Create User</div><button class="mx" onclick="closeM('userModal')">✕</button></div>
+    <div class="mbd">
+      <div class="fg2"><label>Full Name *</label><input type="text" id="un" /></div>
+      <div class="frow"><div class="fg2"><label>Username *</label><input type="text" id="uu" /></div><div class="fg2"><label>Password *</label><input type="password" id="up" /></div></div>
+      <div class="fg2"><label>Role *</label><select id="ur"><option value="manager">Store Manager</option><option value="viewer">Viewer</option></select></div>
+    </div>
+    <div class="mft"><button class="btn btn-ghost" onclick="closeM('userModal')">Cancel</button><button class="btn btn-primary" onclick="saveUser()">Create</button></div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="overlay" id="viewModal" onclick="bgc(event,'viewModal')">
+  <div class="modal modal-xl">
+    <div class="mhd"><div class="mt2">Product Details</div><button class="mx" onclick="closeM('viewModal')">✕</button></div>
+    <div class="mbd" id="viewBody"></div>
+  </div>
+</div>
+
+<!-- COLUMN MODAL -->
+<div class="overlay" id="colModal" onclick="bgc(event,'colModal')">
+  <div class="modal" style="max-width:440px">
+    <div class="mhd"><div class="mt2" id="colModalTitle">Columns</div><button class="mx" onclick="closeM('colModal')">✕</button></div>
+    <div class="mbd"><p style="font-size:12px;color:var(--text2);margin-bottom:10px">Drag ☰ to reorder. Check to show/hide.</p><div class="field-list" id="colPickerList"></div></div>
+    <div class="mft"><button class="btn btn-ghost" onclick="resetCols()">Reset</button><button class="btn btn-primary" onclick="applyCols()">Apply</button></div>
+  </div>
+</div>
+
+<!-- STATEMENT MODAL (from dashboard) -->
+<div class="overlay" id="stmtModal" onclick="bgc(event,'stmtModal')">
+  <div class="modal modal-xl">
+    <div class="mhd"><div class="mt2" id="stmtModalTitle">Stock Statement</div><button class="mx" onclick="closeM('stmtModal')">✕</button></div>
+    <div class="mbd">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <select class="flt" id="modalStmtCat" onchange="renderStmtModal()"><option value="">All Categories</option></select>
+        <select class="flt" id="modalStmtBrand" onchange="renderStmtModal()"><option value="">All Brands</option></select>
+      </div>
+      <div id="stmtModalBody"></div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-ghost" onclick="closeM('stmtModal')">Close</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportStmtModalExcel()">⬇ Excel</button>
+      <button class="btn btn-primary btn-sm" onclick="exportStmtModalPDF()">📄 PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let cu=null, exSel=new Set(), stmtSel=new Set();
+let products=[], changelog=[];
+let _imgData=null,_invData=null,_dcData=null;
+let _modalBasis='landed';
+
+let users=[
+  {id:'u1',name:'Ravi Kumar',username:'manager1',password:'pass123',role:'manager',seePrice:false,canAdd:true,canEdit:true,canDelete:false},
+  {id:'u2',name:'Priya S',username:'viewer1',password:'pass123',role:'viewer',seePrice:false,canAdd:false,canEdit:false,canDelete:false},
+];
+
+const PRICE_LABELS={landed:'Landed',list_price:'List Price',bsp:'BSP',dealer_price:'Dealer Price',end_user_price:'End User/MRP'};
+const PRICE_KEYS=Object.keys(PRICE_LABELS);
+
+const COL_DEFS={
+  products:[
+    {key:'sel',label:'☑',fixed:true,w:34},{key:'img',label:'',fixed:true,w:32},
+    {key:'code',label:'Code',visible:true,w:90},{key:'serial_number',label:'S/N',visible:false,w:90},
+    {key:'category',label:'Category',visible:true,w:100},{key:'brand',label:'Brand',visible:true,w:90},
+    {key:'variant',label:'Variant',visible:true,w:80},{key:'yom',label:'YOM',visible:false,w:70},
+    {key:'short_desc',label:'Short Desc',visible:true,w:160},{key:'qty',label:'Stock',visible:true,w:70},
+    {key:'location',label:'Location',visible:true,w:90},{key:'storage_area',label:'Storage',visible:true,w:90},
+    {key:'package_type',label:'Package',visible:false,w:80},{key:'remarks',label:'Remarks',visible:false,w:120},
+    {key:'invoice_no',label:'Invoice',visible:false,w:90},{key:'entry_time',label:'Entry Time',visible:false,w:110},
+    {key:'actions',label:'Actions',fixed:true,visible:true,w:140},
+  ],
+  stock:[
+    {key:'code',label:'Code',visible:true,w:90},{key:'short_desc',label:'Product',visible:true,w:160},
+    {key:'category',label:'Category',visible:true,w:100},{key:'qty',label:'Qty',visible:true,w:60},
+    {key:'status',label:'Status',visible:true,w:100},{key:'location',label:'Location',visible:true,w:90},
+    {key:'storage_area',label:'Storage',visible:true,w:90},{key:'brand',label:'Brand',visible:false,w:80},
+    {key:'variant',label:'Variant',visible:false,w:80},{key:'update',label:'Update',fixed:true,visible:true,w:140},
+  ],
+  pricing:[
+    {key:'code',label:'Code',visible:true,w:90},{key:'short_desc',label:'Product',visible:true,w:160},
+    {key:'variant',label:'Variant',visible:true,w:80},{key:'landed',label:'Landed ₹',visible:true,w:90},
+    {key:'list_price',label:'List ₹',visible:true,w:85},{key:'bsp',label:'BSP ₹',visible:true,w:80},
+    {key:'dealer_price',label:'Dealer ₹',visible:true,w:85},{key:'end_user_price',label:'End User ₹',visible:true,w:90},
+    {key:'actions',label:'Actions',fixed:true,visible:true,w:70},
+  ],
+};
+let colState={
+  products:JSON.parse(JSON.stringify(COL_DEFS.products)),
+  stock:JSON.parse(JSON.stringify(COL_DEFS.stock)),
+  pricing:JSON.parse(JSON.stringify(COL_DEFS.pricing)),
+};
+let _colEditTab=null,_colEditState=null;
+
+const EXPORT_FIELDS=[
+  {key:'code',label:'Code',def:true},{key:'serial_number',label:'Serial No',def:true},
+  {key:'category',label:'Category',def:true},{key:'brand',label:'Brand',def:true},
+  {key:'variant',label:'Variant',def:true},{key:'yom',label:'YOM',def:false},
+  {key:'short_desc',label:'Short Desc',def:true},{key:'description',label:'Long Description',def:true},
+  {key:'remarks',label:'Remarks',def:true},{key:'qty',label:'Qty',def:true},
+  {key:'location',label:'Location',def:true},{key:'storage_area',label:'Storage Area',def:true},
+  {key:'package_type',label:'Package',def:false},{key:'weight_kg',label:'Weight(kg)',def:false},
+  {key:'dimensions',label:'Dimensions',def:false},{key:'invoice_no',label:'Invoice No',def:false},
+  {key:'invoice_date',label:'Invoice Date',def:false},{key:'dc_waybill',label:'DC/Waybill',def:false},
+  {key:'entry_time',label:'Entry Time',def:false},
+  {key:'landed',label:'Landed ₹',def:false},{key:'list_price',label:'List Price ₹',def:false},
+  {key:'bsp',label:'BSP ₹',def:false},{key:'dealer_price',label:'Dealer ₹',def:false},
+  {key:'end_user_price',label:'End User ₹',def:false},
+];
+let selectedExportFields=EXPORT_FIELDS.filter(f=>f.def).map(f=>f.key);
+
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+function doLogin(){
+  const u=gv('lu').trim(),p=gv('lp');
+  g('lerr').style.display='none';
+  if(u==='admin'&&p==='Vpladmin@26'){cu={name:'Super Admin',username:'admin',role:'admin',seePrice:true,canAdd:true,canEdit:true,canDelete:true};startApp();return;}
+  const f=users.find(x=>x.username===u&&x.password===p);
+  if(f){cu=f;startApp();return;}
+  g('lerr').style.display='block';
+}
+function startApp(){
+  g('loginScreen').style.display='none';g('appScreen').style.display='flex';
+  const av=g('uav');av.textContent=cu.name.substring(0,2).toUpperCase();
+  av.style.background=cu.role==='admin'?'var(--accent)':cu.role==='manager'?'var(--purple)':'var(--teal)';
+  g('uname').textContent=cu.name;
+  g('urole').textContent=cu.role==='admin'?'Super Admin':cu.role==='manager'?'Store Manager':'Viewer';
+  if(cu.role==='admin'){g('navPricing').style.display='';g('navUsers').style.display='';}
+  g('btnAdd').style.display=(cu.canAdd||cu.role==='admin')?'':'none';
+  if(cu.seePrice||cu.role==='admin')g('dashValueSection').style.display='block';
+  buildExportFieldPicker();popStmtFilters();renderAll();
+}
+function logout(){
+  cu=null;g('loginScreen').style.display='flex';g('appScreen').style.display='none';
+  g('lu').value='';g('lp').value='';
+  g('navPricing').style.display='none';g('navUsers').style.display='none';
+  document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===0));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+}
+
+// ════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  g('t-'+name).classList.add('active');
+  document.querySelectorAll('.ni').forEach(n=>{const t=n.textContent.toLowerCase();if(t.includes(name.substring(0,5))||t.includes(name))n.classList.add('active');});
+  const m={dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();}};
+  m[name]?.();
+}
+function renderAll(){renderDash();popFilters();renderProducts();renderStock();if(cu?.role==='admin'){renderPricing();renderUsers();}popStmtFilters();renderStatement();popExFilters();renderExport();renderChangelog();}
+
+// ════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════
+function fmt(n){return '₹'+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function calcVal(basis){return products.reduce((s,p)=>s+(p.pricing?parseFloat(p.pricing[basis]||0)*p.qty:0),0);}
+function renderDash(){
+  g('s1').textContent=products.length;g('s2').textContent=products.reduce((s,p)=>s+p.qty,0);
+  g('s3').textContent=products.filter(p=>p.qty>=10).length;g('s4').textContent=products.filter(p=>p.qty>0&&p.qty<10).length;g('s5').textContent=products.filter(p=>p.qty===0).length;
+  const showVal=cu?.seePrice||cu?.role==='admin';
+  g('dashValueSection').style.display=showVal?'block':'none';
+  if(showVal){
+    g('dv_landed').textContent=fmt(calcVal('landed'));g('dv_list').textContent=fmt(calcVal('list_price'));
+    g('dv_bsp').textContent=fmt(calcVal('bsp'));g('dv_dealer').textContent=fmt(calcVal('dealer_price'));g('dv_mrp').textContent=fmt(calcVal('end_user_price'));
+  }
+  g('actTbl').innerHTML=changelog.slice(0,15).map(a=>`<tr><td style="color:var(--text2);font-size:11px">${a.date} ${a.time}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product||'—'}</td><td style="color:var(--text2);font-size:12px">${a.details||''}</td><td style="color:var(--red);font-size:12px">${a.oldVal||''}</td><td style="color:var(--green);font-size:12px">${a.newVal||''}</td><td style="color:var(--text2)">${a.by}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
+}
+
+// ════════════════════════════════════════════════════════
+// STATEMENT MODAL (dashboard click)
+// ════════════════════════════════════════════════════════
+function openStmtModal(basis){
+  _modalBasis=basis;
+  g('stmtModalTitle').textContent='Stock Statement — '+PRICE_LABELS[basis];
+  popModalStmtFilters();renderStmtModal();showO('stmtModal');
+}
+function popModalStmtFilters(){
+  const cats=[...new Set(products.map(p=>p.category))].sort();
+  const brands=[...new Set(products.map(p=>p.brand))].sort();
+  const mc=g('modalStmtCat'),mb=g('modalStmtBrand');
+  if(!mc||!mb)return;
+  mc.innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+  mb.innerHTML='<option value="">All Brands</option>'+brands.map(b=>`<option>${b}</option>`).join('');
+}
+function renderStmtModal(){
+  const cat=gv('modalStmtCat'),brand=gv('modalStmtBrand');
+  let fl=products.filter(p=>(!cat||p.category===cat)&&(!brand||p.brand===brand));
+  const rows=buildStmtRows(fl,_modalBasis);
+  const totalQty=rows.reduce((s,r)=>s+r.qty,0),totalVal=rows.reduce((s,r)=>s+r.stockValue,0);
+  g('stmtModalBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div>
+      <div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${totalQty}</div></div>
+      <div class="stmt-card"><div class="stmt-card-label">Total Value (${PRICE_LABELS[_modalBasis]})</div><div class="stmt-card-val" style="color:var(--green)">${fmt(totalVal)}</div></div>
+    </div>
+    <div style="overflow-x:auto;max-height:50vh">
+    <table style="table-layout:auto"><thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price</th><th>Stock Value</th></tr></thead>
+    <tbody>${rows.map(r=>{const c=r.qty===0?'var(--red)':r.qty<10?'var(--amber)':'var(--green)';const sl=r.qty===0?'Out':r.qty<10?'Low':'In Stock';return `<tr><td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||'—'}</td><td><strong>${r.short_desc}</strong></td><td style="font-weight:700">${r.qty}</td><td style="color:${c};font-size:12px;font-weight:600">${sl}</td><td class="pv">${r.unitPrice>0?fmt(r.unitPrice):'<span class="ph">—</span>'}</td><td style="font-weight:700;color:var(--accent)">${r.unitPrice>0?fmt(r.stockValue):'—'}</td></tr>`;}).join('')}
+    </tbody><tfoot><tr style="background:var(--bg3)"><td colspan="5" style="font-weight:700;padding:9px 10px">TOTAL (${rows.length} items)</td><td style="font-weight:700">${totalQty}</td><td></td><td></td><td style="font-weight:700;font-size:14px;color:var(--accent)">${fmt(totalVal)}</td></tr></tfoot>
+    </table></div>`;
+}
+function getModalRows(){
+  const cat=gv('modalStmtCat'),brand=gv('modalStmtBrand');
+  return buildStmtRows(products.filter(p=>(!cat||p.category===cat)&&(!brand||p.brand===brand)),_modalBasis);
+}
+function exportStmtModalExcel(){exportStmtRowsExcel(getModalRows(),_modalBasis);}
+function exportStmtModalPDF(){exportStmtRowsPDF(getModalRows(),_modalBasis,gv('modalStmtCat')||'All Products');}
+
+// ════════════════════════════════════════════════════════
+// COLUMNS
+// ════════════════════════════════════════════════════════
+function getVisibleCols(tab){return colState[tab].filter(c=>c.visible||c.fixed);}
+function openColModal(tab){_colEditTab=tab;_colEditState=JSON.parse(JSON.stringify(colState[tab]));g('colModalTitle').textContent='Columns — '+tab.charAt(0).toUpperCase()+tab.slice(1);buildColPickerList();showO('colModal');}
+function buildColPickerList(){
+  const list=g('colPickerList');list.innerHTML='';
+  _colEditState.forEach((col,i)=>{
+    if(col.fixed)return;
+    const item=document.createElement('div');item.className='field-item';item.draggable=true;item.dataset.i=i;
+    item.innerHTML=`<span class="drag-handle">☰</span><input type="checkbox" ${col.visible?'checked':''} onchange="_colEditState[${i}].visible=this.checked" /><span style="flex:1;font-size:13px">${col.label}</span>`;
+    item.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',i);item.classList.add('dragging');});
+    item.addEventListener('dragend',()=>item.classList.remove('dragging'));
+    item.addEventListener('dragover',e=>e.preventDefault());
+    item.addEventListener('drop',e=>{e.preventDefault();const from=parseInt(e.dataTransfer.getData('text/plain'));const[m]=_colEditState.splice(from,1);_colEditState.splice(i,0,m);buildColPickerList();});
+    list.appendChild(item);
+  });
+}
+function applyCols(){colState[_colEditTab]=_colEditState;closeM('colModal');if(_colEditTab==='products')renderProducts();else if(_colEditTab==='stock')renderStock();else if(_colEditTab==='pricing')renderPricing();}
+function resetCols(){colState[_colEditTab]=JSON.parse(JSON.stringify(COL_DEFS[_colEditTab]));_colEditState=JSON.parse(JSON.stringify(colState[_colEditTab]));buildColPickerList();}
+
+// ════════════════════════════════════════════════════════
+// PRODUCTS
+// ════════════════════════════════════════════════════════
+function popFilters(){
+  const cats=[...new Set(products.map(p=>p.category))].sort();
+  const brands=[...new Set(products.map(p=>p.brand))].sort();
+  ['catF','brandF'].forEach(id=>{const el=g(id),v=el.value;el.innerHTML=(id==='catF'?'<option value="">All Categories</option>':'<option value="">All Brands</option>')+(id==='catF'?cats:brands).map(x=>`<option>${x}</option>`).join('');el.value=v;});
+}
+function sortArr(arr,key){
+  const m={code:(a,b)=>a.code.localeCompare(b.code),short_desc:(a,b)=>a.short_desc.localeCompare(b.short_desc),qty_asc:(a,b)=>a.qty-b.qty,qty_desc:(a,b)=>b.qty-a.qty,category:(a,b)=>a.category.localeCompare(b.category),brand:(a,b)=>a.brand.localeCompare(b.brand),status:(a,b)=>a.qty-b.qty,enduser_asc:(a,b)=>(a.pricing?.end_user_price||0)-(b.pricing?.end_user_price||0),enduser_desc:(a,b)=>(b.pricing?.end_user_price||0)-(a.pricing?.end_user_price||0),landed_asc:(a,b)=>(a.pricing?.landed||0)-(b.pricing?.landed||0),landed_desc:(a,b)=>(b.pricing?.landed||0)-(a.pricing?.landed||0)};
+  return m[key]?[...arr].sort(m[key]):arr;
+}
+function renderProducts(){
+  const s=gv('psrch').toLowerCase(),cat=gv('catF'),brand=gv('brandF');
+  const cols=getVisibleCols('products');
+  let fl=products.filter(p=>(!cat||p.category===cat)&&(!brand||p.brand===brand)&&(!s||(p.code+p.short_desc+p.brand+p.variant+p.category+(p.serial_number||'')).toLowerCase().includes(s)));
+  fl=sortArr(fl,gv('prodSort'));
+  g('prodThead').innerHTML='<tr>'+cols.map(c=>`<th style="min-width:${c.w||80}px">${c.label}</th>`).join('')+'</tr>';
+  g('prodTbl').innerHTML=fl.length?fl.map(p=>{
+    const sb=p.qty===0?`<span class="badge br">Out</span>`:p.qty<10?`<span class="badge ba">Low(${p.qty})</span>`:`<span class="badge bg">${p.qty}</span>`;
+    return '<tr>'+cols.map(c=>{
+      if(c.key==='sel')return `<td><input type="checkbox" ${exSel.has(p.id)?'checked':''} onchange="exSel[this.checked?'add':'delete']('${p.id}')" /></td>`;
+      if(c.key==='img')return `<td>${p.image?`<img src="${p.image}" style="width:28px;height:28px;object-fit:cover;border-radius:4px" />`:'<span style="color:var(--text3);font-size:10px">—</span>'}</td>`;
+      if(c.key==='qty')return `<td>${sb}</td>`;
+      if(c.key==='actions'){
+        const canEd=cu.canEdit||cu.role==='admin',canDel=cu.canDelete||cu.role==='admin',canCl=cu.canAdd||cu.role==='admin';
+        return `<td><div style="display:flex;gap:3px;flex-wrap:wrap"><button class="btn btn-ghost btn-xs" onclick="viewProd('${p.id}')">View</button>${canEd?`<button class="btn btn-ghost btn-xs" onclick="openProdModal('${p.id}')">Edit</button>`:''}${canCl?`<button class="btn btn-teal btn-xs" onclick="cloneProd('${p.id}')">Clone</button>`:''}${canDel?`<button class="btn btn-danger btn-xs" onclick="delProd('${p.id}')">Del</button>`:''}</div></td>`;
+      }
+      if(c.key==='entry_time')return `<td style="font-size:11px">${p.entry_time?new Date(p.entry_time).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'}):'—'}</td>`;
+      return `<td title="${p[c.key]||''}">${p[c.key]||'—'}</td>`;
+    }).join('')+'</tr>';
+  }).join(''):`<tr><td colspan="${cols.length}" style="text-align:center;padding:28px;color:var(--text3)">No products</td></tr>`;
+}
+function cloneProd(id){
+  const p=products.find(x=>x.id===id);if(!p)return;
+  const clone={...JSON.parse(JSON.stringify(p)),id:'p'+Date.now(),code:p.code+'-COPY',entry_time:new Date().toISOString()};
+  products.push(clone);addLog('Product Cloned',p.short_desc,'Cloned from '+p.code,'','');
+  renderAll();notif('Cloned! Edit the copy to update code.','s');setTimeout(()=>openProdModal(clone.id),300);
+}
+function openProdModal(id){
+  const p=id?products.find(x=>x.id===id):null;
+  g('pmT').textContent=id?'Edit Product':'Add Product';g('eid').value=id||'';
+  _imgData=null;_invData=null;_dcData=null;
+  ['fc','fsn','fyom','fcat','fbr','fvar','fpkg','fsd','fdd','frm','fq','fl','fst','fdl','fdw','fdh','fwt','finv','fdc'].forEach(f=>sv(f,''));
+  sv('fdu','mm');sv('find','');sv('fet','');
+  g('imgPreview').style.display='none';g('imgClear').style.display='none';g('imgPlaceholder').style.display='';
+  g('invFileName').textContent='Click to upload Invoice PDF';g('invClear').style.display='none';
+  g('dcFileName').textContent='Click to upload DC / Waybill PDF';g('dcClear').style.display='none';
+  if(p){
+    sv('fc',p.code);sv('fsn',p.serial_number||'');sv('fyom',p.yom||'');sv('fcat',p.category);sv('fbr',p.brand);sv('fvar',p.variant||'');
+    sv('fpkg',p.package_type||'');sv('fsd',p.short_desc);sv('fdd',p.description||'');sv('frm',p.remarks||'');
+    sv('fq',p.qty);sv('fl',p.location||'');sv('fst',p.storage_area||'');
+    sv('fdl',p.dim_l||'');sv('fdw',p.dim_w||'');sv('fdh',p.dim_h||'');sv('fdu',p.dim_unit||'mm');sv('fwt',p.weight_kg||'');
+    sv('finv',p.invoice_no||'');sv('fdc',p.dc_waybill||'');
+    if(p.invoice_date)sv('find',p.invoice_date);
+    if(p.entry_time)try{sv('fet',new Date(p.entry_time).toISOString().slice(0,16));}catch(e){}
+    if(p.image){_imgData=p.image;g('imgPreview').src=p.image;g('imgPreview').style.display='block';g('imgClear').style.display='inline-flex';g('imgPlaceholder').style.display='none';}
+    if(p.inv_pdf){_invData=p.inv_pdf;g('invFileName').textContent=p.inv_pdf_name||'Invoice.pdf';g('invClear').style.display='inline-flex';}
+    if(p.dc_pdf){_dcData=p.dc_pdf;g('dcFileName').textContent=p.dc_pdf_name||'DC.pdf';g('dcClear').style.display='inline-flex';}
+  } else sv('fet',new Date().toISOString().slice(0,16));
+  showO('prodModal');
+}
+function saveProduct(){
+  const code=gv('fc').trim(),cat=gv('fcat').trim(),brand=gv('fbr').trim(),sd=gv('fsd').trim(),qty=gv('fq');
+  if(!code||!cat||!brand||!sd||qty===''){notif('Fill required fields (*)','e');return;}
+  const pid=gv('eid');
+  const data={code,serial_number:gv('fsn').trim()||null,yom:gv('fyom').trim()||null,category:cat,brand,variant:gv('fvar').trim()||null,package_type:gv('fpkg').trim()||null,short_desc:sd,description:gv('fdd').trim()||null,remarks:gv('frm').trim()||null,qty:parseInt(qty)||0,location:gv('fl').trim()||null,storage_area:gv('fst').trim()||null,dim_l:fv('fdl')||null,dim_w:fv('fdw')||null,dim_h:fv('fdh')||null,dim_unit:gv('fdu'),weight_kg:fv('fwt')||null,invoice_no:gv('finv').trim()||null,invoice_date:gv('find')||null,dc_waybill:gv('fdc').trim()||null,entry_time:gv('fet')||new Date().toISOString(),updated_at:new Date().toISOString(),image:_imgData,inv_pdf:_invData,inv_pdf_name:g('invFileName').textContent,dc_pdf:_dcData,dc_pdf_name:g('dcFileName').textContent};
+  if(pid){const idx=products.findIndex(p=>p.id===pid);const old=products[idx];const oldQty=old.qty;products[idx]={...old,...data,pricing:old.pricing};addLog('Product Updated',data.short_desc,'Code:'+data.code,'','');if(oldQty!==data.qty)addLog('Stock Updated',data.short_desc,`${oldQty} → ${data.qty}`,oldQty,data.qty);notif('Product updated!','s');}
+  else{products.push({id:'p'+Date.now(),...data,pricing:null});addLog('Product Added',data.short_desc,'Code:'+data.code,'',data.qty);notif('Product added!','s');}
+  closeM('prodModal');renderAll();
+}
+function delProd(id){if(!confirm('Delete this product?'))return;const p=products.find(x=>x.id===id);products=products.filter(x=>x.id!==id);addLog('Product Deleted',p?.short_desc,'','','');renderAll();notif('Deleted','e');}
+function viewProd(id){
+  const p=products.find(x=>x.id===id);if(!p)return;
+  const cp=cu.role==='admin'||cu.seePrice;
+  const qc=p.qty===0?'var(--red)':p.qty<10?'var(--amber)':'var(--green)';
+  const row=(l,v)=>v?`<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">${l}</div><div>${v}</div></div>`:'';
+  const dim=p.dim_l||p.dim_w||p.dim_h?`${p.dim_l||'?'}×${p.dim_w||'?'}×${p.dim_h||'?'} ${p.dim_unit}`:'';
+  let ph='';if(cp&&p.pricing){ph=`<div style="margin-top:13px;border-top:1px solid var(--border);padding-top:11px"><div style="font-size:11px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;font-weight:600">Pricing</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px">${PRICE_KEYS.map(k=>`<div style="background:var(--bg3);border-radius:6px;padding:7px 9px"><div style="font-size:10px;color:var(--text2)">${PRICE_LABELS[k]}</div><div class="pv">₹${parseFloat(p.pricing[k]||0).toFixed(2)}</div></div>`).join('')}</div></div>`;}
+  let docs='';if(p.inv_pdf)docs+=`<button class="btn btn-ghost btn-xs" onclick="dlPDF('${p.inv_pdf}','${p.inv_pdf_name||'Invoice.pdf'}')">📄 Invoice</button> `;if(p.dc_pdf)docs+=`<button class="btn btn-ghost btn-xs" onclick="dlPDF('${p.dc_pdf}','${p.dc_pdf_name||'DC.pdf'}')">📄 DC/Waybill</button>`;
+  let imgHtml=p.image?`<img src="${p.image}" style="max-width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-bottom:11px;display:block" />`:'';
+  g('viewBody').innerHTML=`${imgHtml}<div style="display:flex;gap:11px;align-items:flex-start;margin-bottom:13px"><div style="background:var(--bg3);border-radius:7px;padding:8px 12px;font-size:15px;font-weight:700;color:var(--accent);font-family:monospace;flex-shrink:0">${p.code}</div><div><div style="font-size:16px;font-weight:600">${p.short_desc}</div><div style="color:var(--text2);font-size:12px;margin-top:2px">${p.brand}${p.variant?' · '+p.variant:''}${p.yom?' · YOM:'+p.yom:''}</div></div></div>${p.description?`<div style="background:var(--bg3);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px;line-height:1.6">${p.description}</div>`:''} ${p.remarks?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px"><strong style="color:var(--amber)">Remarks:</strong> ${p.remarks}</div>`:''}<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;margin-bottom:11px">${row('Category',p.category)}${row('Brand',p.brand)}${row('Variant',p.variant)}${row('Serial No',p.serial_number)}${row('Package',p.package_type)}<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Stock</div><div style="color:${qc};font-weight:700;font-size:15px">${p.qty} units</div></div>${row('Location',p.location)}${row('Storage',p.storage_area)}${row('Dimensions',dim)}${row('Weight',p.weight_kg?p.weight_kg+' kg':'')}${row('Invoice No',p.invoice_no)}${row('Invoice Date',p.invoice_date)}${row('DC/Waybill',p.dc_waybill)}${row('Entry Time',p.entry_time?new Date(p.entry_time).toLocaleString():'')}</div>${docs?`<div style="display:flex;gap:7px;margin-bottom:11px">${docs}</div>`:''}${ph}`;
+  showO('viewModal');
+}
+function dlPDF(data,name){const a=document.createElement('a');a.href=data;a.download=name;a.click();}
+
+// ════════════════════════════════════════════════════════
+// FILE UPLOADS
+// ════════════════════════════════════════════════════════
+function handleImgUpload(){const f=g('fimg').files[0];if(!f)return;if(f.size>2*1024*1024){notif('Image max 2MB','e');return;}const r=new FileReader();r.onload=e=>{_imgData=e.target.result;g('imgPreview').src=_imgData;g('imgPreview').style.display='block';g('imgClear').style.display='inline-flex';g('imgPlaceholder').style.display='none';};r.readAsDataURL(f);}
+function clearImg(e){e.preventDefault();e.stopPropagation();_imgData=null;g('imgPreview').style.display='none';g('imgClear').style.display='none';g('imgPlaceholder').style.display='';}
+function handleFileUpload(inputId,nameId,which){const f=g(inputId).files[0];if(!f)return;if(f.size>5*1024*1024){notif('PDF max 5MB','e');return;}const r=new FileReader();r.onload=e=>{if(which==='inv')_invData=e.target.result;else _dcData=e.target.result;g(nameId).textContent=f.name;g(which+'Clear').style.display='inline-flex';};r.readAsDataURL(f);}
+function clearFile(e,which){e.preventDefault();e.stopPropagation();if(which==='inv'){_invData=null;g('invFileName').textContent='Click to upload Invoice PDF';g('invClear').style.display='none';g('finvf').value='';}else{_dcData=null;g('dcFileName').textContent='Click to upload DC / Waybill PDF';g('dcClear').style.display='none';g('fdcf').value='';}}
+
+// ════════════════════════════════════════════════════════
+// STOCK
+// ════════════════════════════════════════════════════════
+function renderStock(){
+  const s=gv('ssrch').toLowerCase(),ce=cu.canEdit||cu.role==='admin';
+  const cols=getVisibleCols('stock');
+  let fl=products.filter(p=>!s||(p.code+p.short_desc+p.category).toLowerCase().includes(s));
+  fl=sortArr(fl,gv('stockSort'));
+  g('stockThead').innerHTML='<tr>'+cols.map(c=>`<th style="min-width:${c.w||80}px">${c.label}</th>`).join('')+'</tr>';
+  g('stockTbl').innerHTML=fl.map(p=>{
+    const sc=p.qty===0?'br':p.qty<10?'ba':'bg',sl=p.qty===0?'Out of Stock':p.qty<10?'Low Stock':'In Stock';
+    return '<tr>'+cols.map(c=>{
+      if(c.key==='status')return `<td><span class="badge ${sc}">${sl}</span></td>`;
+      if(c.key==='update')return `<td>${ce?`<div style="display:flex;gap:5px;align-items:center"><input class="qin" type="number" id="qi_${p.id}" value="${p.qty}" min="0" /><button class="btn btn-success btn-xs" onclick="updateQty('${p.id}')">✓</button></div>`:'<span style="color:var(--text3);font-size:11px">View only</span>'}</td>`;
+      if(c.key==='short_desc')return `<td><strong>${p.short_desc}</strong><br><span style="font-size:11px;color:var(--text2)">${p.brand||''}${p.variant?' '+p.variant:''}</span></td>`;
+      if(c.key==='qty')return `<td style="font-weight:700;font-size:15px">${p.qty}</td>`;
+      return `<td>${p[c.key]||'—'}</td>`;
+    }).join('')+'</tr>';
+  }).join('');
+}
+function updateQty(id){
+  const inp=g('qi_'+id);if(!inp)return;const nq=parseInt(inp.value);if(isNaN(nq)||nq<0){notif('Invalid quantity','e');return;}
+  const p=products.find(x=>x.id===id);if(p){const old=p.qty;p.qty=nq;addLog('Stock Updated',p.short_desc,`${old} → ${nq}`,old,nq);renderAll();notif('Stock updated!','s');}
+}
+
+// ════════════════════════════════════════════════════════
+// PRICING
+// ════════════════════════════════════════════════════════
+function renderPricing(){
+  const s=gv('prsrch').toLowerCase(),cols=getVisibleCols('pricing');
+  let fl=products.filter(p=>!s||(p.code+p.short_desc+p.brand).toLowerCase().includes(s));
+  fl=sortArr(fl,gv('pricingSort'));
+  g('pricingThead').innerHTML='<tr>'+cols.map(c=>`<th style="min-width:${c.w||80}px">${c.label}</th>`).join('')+'</tr>';
+  g('priceTbl').innerHTML=fl.map(p=>{const pr=p.pricing||{};const f=k=>pr[k]?`<span class="pv">₹${parseFloat(pr[k]).toFixed(2)}</span>`:`<span class="ph">—</span>`;return '<tr>'+cols.map(c=>{if(c.key==='actions')return `<td><button class="btn btn-ghost btn-xs" onclick="openPriceModal('${p.id}')">Set</button></td>`;if(c.key==='short_desc')return `<td><strong>${p.short_desc}</strong></td>`;if(PRICE_KEYS.includes(c.key))return `<td>${f(c.key)}</td>`;return `<td>${p[c.key]||'—'}</td>`;}).join('')+'</tr>';}).join('');
+}
+function openPriceModal(id){const p=products.find(x=>x.id===id);if(!p)return;sv('epid',id);g('pmProd').textContent=`${p.brand} — ${p.short_desc} ${p.variant||''}`;const pr=p.pricing||{};['p1','p2','p3','p4','p5'].forEach((f,i)=>sv(f,pr[PRICE_KEYS[i]]||''));showO('priceModal');}
+function savePricing(){
+  const id=gv('epid');const p=products.find(x=>x.id===id);if(!p)return;
+  const old=p.pricing?{...p.pricing}:{};p.pricing={landed:fv('p1'),list_price:fv('p2'),bsp:fv('p3'),dealer_price:fv('p4'),end_user_price:fv('p5')};
+  addLog('Price Set',p.short_desc,'EndUser:₹'+p.pricing.end_user_price,old.end_user_price||0,p.pricing.end_user_price);
+  closeM('priceModal');renderPricing();renderDash();renderStatement();notif('Pricing saved!','s');
+}
+
+// ════════════════════════════════════════════════════════
+// STOCK STATEMENT
+// ════════════════════════════════════════════════════════
+function popStmtFilters(){
+  ['stmtCat','stmtBrand'].forEach(id=>{const el=g(id);if(!el)return;const v=el.value;const vals=[...new Set(products.map(p=>id==='stmtCat'?p.category:p.brand))].sort();el.innerHTML=(id==='stmtCat'?'<option value="">All Categories</option>':'<option value="">All Brands</option>')+vals.map(x=>`<option>${x}</option>`).join('');el.value=v;});
+}
+function buildStmtRows(src,basis){
+  return src.map(p=>{const unitPrice=p.pricing?parseFloat(p.pricing[basis]||0):0;return {...p,unitPrice,stockValue:unitPrice*p.qty,status:p.qty===0?'Out of Stock':p.qty<10?'Low Stock':'In Stock'};});
+}
+function renderStatement(){
+  const basis=gv('stmtBasis')||'landed';
+  const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();
+  let fl=products.filter(p=>{
+    if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;
+    if(status==='in'&&p.qty<10)return false;if(status==='low'&&(p.qty===0||p.qty>=10))return false;
+    if(status==='out'&&p.qty!==0)return false;
+    if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;
+    return true;
+  });
+  const rows=buildStmtRows(fl,basis);
+  const totalQty=rows.reduce((s,r)=>s+r.qty,0),totalVal=rows.reduce((s,r)=>s+r.stockValue,0),withPr=rows.filter(r=>r.unitPrice>0).length;
+  g('stmtSummary').innerHTML=`<div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${totalQty}</div></div><div class="stmt-card"><div class="stmt-card-label">Priced Products</div><div class="stmt-card-val" style="color:var(--green)">${withPr}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Value (${PRICE_LABELS[basis]})</div><div class="stmt-card-val" style="color:var(--accent)">${fmt(totalVal)}</div></div>`;
+  g('stmtThead').innerHTML=`<tr><th><input type="checkbox" id="stmtSelAll" onchange="toggleStmtSel(this)" /></th><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price (${PRICE_LABELS[basis]})</th><th>Stock Value</th></tr>`;
+  g('stmtTbl').innerHTML=rows.map(r=>{const sc=r.qty===0?'br':r.qty<10?'ba':'bg';return `<tr><td><input type="checkbox" ${stmtSel.has(r.id)?'checked':''} onchange="stmtSel[this.checked?'add':'delete']('${r.id}')" /></td><td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||'—'}</td><td><strong>${r.short_desc}</strong></td><td style="font-weight:700">${r.qty}</td><td><span class="badge ${sc}">${r.status}</span></td><td class="pv">${r.unitPrice>0?fmt(r.unitPrice):'<span class="ph">—</span>'}</td><td style="font-weight:700;color:var(--accent)">${r.unitPrice>0?fmt(r.stockValue):'—'}</td></tr>`;}).join('');
+  g('stmtFoot').innerHTML=`<tr style="background:var(--bg3)"><td></td><td colspan="5" style="font-weight:700;padding:9px 10px">TOTAL (${rows.length} products)</td><td style="font-weight:700">${totalQty}</td><td></td><td></td><td style="font-weight:700;font-size:15px;color:var(--accent)">${fmt(totalVal)}</td></tr>`;
+}
+function toggleStmtSel(el){
+  document.querySelectorAll('#stmtTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);
+  const basis=gv('stmtBasis')||'landed';
+  const cat=gv('stmtCat'),brand=gv('stmtBrand');
+  const fl=products.filter(p=>(!cat||p.category===cat)&&(!brand||p.brand===brand));
+  if(el.checked)fl.forEach(p=>stmtSel.add(p.id));else stmtSel.clear();
+}
+function getStmtRows(){
+  const basis=gv('stmtBasis')||'landed';
+  const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();
+  const src=products.filter(p=>{if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;if(status==='in'&&p.qty<10)return false;if(status==='low'&&(p.qty===0||p.qty>=10))return false;if(status==='out'&&p.qty!==0)return false;if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;return true;});
+  return {rows:buildStmtRows(stmtSel.size?src.filter(p=>stmtSel.has(p.id)):src,basis),basis};
+}
+function exportStmtExcel(){const{rows,basis}=getStmtRows();exportStmtRowsExcel(rows,basis);}
+function exportStmtPDF(){const{rows,basis}=getStmtRows();exportStmtRowsPDF(rows,basis,stmtSel.size?'Selected Products':(gv('stmtCat')||'All Products'));}
+function exportStmtRowsExcel(rows,basis){
+  const headers=['Code','Category','Brand','Variant','Short Desc','Qty','Status',`Unit Price (${PRICE_LABELS[basis]}) ₹`,'Stock Value ₹'];
+  const data=[headers,...rows.map(r=>[r.code,r.category,r.brand,r.variant||'',r.short_desc,r.qty,r.status,r.unitPrice.toFixed(2),r.stockValue.toFixed(2)])];
+  data.push(['','','','','TOTAL',rows.reduce((s,r)=>s+r.qty,0),'','',rows.reduce((s,r)=>s+r.stockValue,0).toFixed(2)]);
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:20}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Stock Statement');
+  XLSX.writeFile(wb,`Visdil_StockStatement_${PRICE_LABELS[basis].replace(/\//g,'-')}_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
+}
+function exportStmtRowsPDF(rows,basis,scope){
+  const totalQty=rows.reduce((s,r)=>s+r.qty,0),totalVal=rows.reduce((s,r)=>s+r.stockValue,0);
+  const trs=rows.map(r=>{const c=r.qty===0?'#dc2626':r.qty<10?'#d97706':'#059669';return `<tr><td>${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||''}</td><td>${r.short_desc}</td><td style="font-weight:700">${r.qty}</td><td style="color:${c};font-weight:600">${r.status}</td><td>${r.unitPrice>0?'₹'+r.unitPrice.toFixed(2):'—'}</td><td style="font-weight:700;color:#1e40af">${r.unitPrice>0?'₹'+r.stockValue.toFixed(2):'—'}</td></tr>`;}).join('');
+  printPage(`Stock Statement — ${PRICE_LABELS[basis]}`,`<p style="margin-bottom:8px;font-size:9px;color:#555">Scope: ${scope} | Basis: ${PRICE_LABELS[basis]} | Products: ${rows.length} | Units: ${totalQty} | Value: ₹${totalVal.toLocaleString('en-IN',{minimumFractionDigits:2})}</p><table><thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price</th><th>Stock Value</th></tr></thead><tbody>${trs}</tbody><tfoot><tr style="background:#e0e7ff"><td colspan="5" style="font-weight:700">TOTAL</td><td style="font-weight:700">${totalQty}</td><td></td><td></td><td style="font-weight:700;color:#1e40af">₹${totalVal.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr></tfoot></table>`);
+}
+
+// ════════════════════════════════════════════════════════
+// CHANGELOG
+// ════════════════════════════════════════════════════════
+function addLog(action,product,details,oldVal,newVal){
+  const now=new Date();
+  changelog.unshift({id:'l'+Date.now(),date:now.toLocaleDateString('en-IN'),time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),action,product:product||'',details:details||'',oldVal:oldVal!==undefined&&oldVal!==''?String(oldVal):'',newVal:newVal!==undefined&&newVal!==''?String(newVal):'',by:cu?cu.name:'System'});
+  if(changelog.length>500)changelog.pop();
+}
+function renderChangelog(){
+  const s=gv('clsrch').toLowerCase(),f=gv('clFilter');
+  const fl=changelog.filter(l=>(!f||l.action===f)&&(!s||(l.product+l.details+l.by+l.action).toLowerCase().includes(s)));
+  g('clTbl').innerHTML=fl.length?fl.map(l=>`<tr><td style="font-size:11px;color:var(--text2)">${l.date}</td><td style="font-size:11px;color:var(--text2)">${l.time}</td><td><span class="log-badge">${l.action}</span></td><td style="font-size:12px">${l.product}</td><td style="font-size:12px;color:var(--text2)">${l.details}</td><td style="font-size:12px;color:var(--red)">${l.oldVal}</td><td style="font-size:12px;color:var(--green)">${l.newVal}</td><td style="font-size:12px;color:var(--text2)">${l.by}</td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">No log entries</td></tr>';
+}
+function exportChangelogExcel(){
+  const headers=['Date','Time','Action','Product','Details','Old Value','New Value','By'];
+  const data=[headers,...changelog.map(l=>[l.date,l.time,l.action,l.product,l.details,l.oldVal,l.newVal,l.by])];
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:18}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Change Log');
+  XLSX.writeFile(wb,`Visdil_ChangeLog_${yyyymmdd()}.xlsx`);notif('Exported!','s');
+}
+
+// ════════════════════════════════════════════════════════
+// USERS & PERMISSIONS
+// ════════════════════════════════════════════════════════
+function renderUsers(){
+  g('userList').innerHTML=users.map(u=>`<div class="ucard"><div style="display:flex;align-items:center;gap:10px"><div class="av" style="background:${u.role==='manager'?'var(--purple)':'var(--teal)'}">${u.name.substring(0,2).toUpperCase()}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${u.name}</div><div style="font-size:12px;color:var(--text2)">@${u.username} · <span class="badge ${u.role==='manager'?'bp':'bt'}">${u.role==='manager'?'Manager':'Viewer'}</span></div></div><button class="btn btn-danger btn-xs" onclick="delUser('${u.id}')">Remove</button></div></div>`).join('')||'<div style="color:var(--text3);padding:12px;font-size:13px">No users</div>';
+  const PERMS=[{key:'seePrice',label:'See Pricing',sub:'View all price fields & stock values'},{key:'canAdd',label:'Add Products',sub:'Create new product entries'},{key:'canEdit',label:'Edit Products & Stock',sub:'Modify products, update qty'},{key:'canDelete',label:'Delete Products',sub:'Remove product records'}];
+  g('permList').innerHTML=users.map(u=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;margin-bottom:10px"><div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px"><div class="av" style="width:22px;height:22px;font-size:10px;background:${u.role==='manager'?'var(--purple)':'var(--teal)'}">${u.name.substring(0,2).toUpperCase()}</div>${u.name} <span style="font-size:11px;color:var(--text2)">@${u.username}</span></div>${PERMS.map(p=>`<div class="prow"><div><div style="font-size:13px">${p.label}</div><div style="font-size:11px;color:var(--text2)">${p.sub}</div></div><label class="tog"><input type="checkbox" ${u[p.key]?'checked':''} onchange="setPerm('${u.id}','${p.key}',this)" /><span class="tog-s"></span></label></div>`).join('')}</div>`).join('')||'<div style="color:var(--text3);font-size:13px">No users</div>';
+}
+function setPerm(uid,key,el){const u=users.find(x=>x.id===uid);if(u){u[key]=el.checked;notif(`${key} ${el.checked?'enabled':'disabled'} for ${u.name}`,'i');if(cu&&cu.id===uid){cu[key]=el.checked;if(key==='seePrice')renderDash();}}}
+function openUserModal(){['un','uu','up'].forEach(i=>sv(i,''));showO('userModal');}
+function saveUser(){
+  const name=gv('un').trim(),user=gv('uu').trim(),pass=gv('up'),role=gv('ur');
+  if(!name||!user||!pass){notif('Fill all fields','e');return;}
+  if(users.find(u=>u.username===user)||user==='admin'){notif('Username taken','e');return;}
+  users.push({id:'u'+Date.now(),name,username:user,password:pass,role,seePrice:false,canAdd:false,canEdit:false,canDelete:false});
+  closeM('userModal');renderUsers();notif('@'+user+' created!','s');
+}
+function delUser(id){if(!confirm('Remove?'))return;users=users.filter(u=>u.id!==id);renderUsers();notif('Removed','i');}
+
+// ════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════
+function popExFilters(){
+  ['exCatF','exBrandF'].forEach(id=>{const el=g(id);if(!el)return;const v=el.value;const vals=[...new Set(products.map(p=>id==='exCatF'?p.category:p.brand))].sort();el.innerHTML=(id==='exCatF'?'<option value="">All Categories</option>':'<option value="">All Brands</option>')+vals.map(x=>`<option>${x}</option>`).join('');el.value=v;});
+}
+function renderExport(){
+  const s=gv('exsrch').toLowerCase();
+  const fl=products.filter(p=>!s||(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s));
+  g('exTbl').innerHTML=fl.map(p=>{const sc=p.qty===0?'br':p.qty<10?'ba':'bg';const sl=p.qty===0?'Out':p.qty<10?'Low':'In Stock';return `<tr><td><input type="checkbox" ${exSel.has(p.id)?'checked':''} onchange="exSel[this.checked?'add':'delete']('${p.id}')" /></td><td style="font-family:monospace;font-size:12px;color:var(--accent)">${p.code}</td><td>${p.category}</td><td>${p.brand}</td><td>${p.variant||'—'}</td><td>${p.short_desc}</td><td>${p.yom||'—'}</td><td style="font-weight:700">${p.qty}</td><td><span class="badge ${sc}">${sl}</span></td></tr>`;}).join('');
+}
+function toggleExAll(el){document.querySelectorAll('#exTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);if(el.checked)products.forEach(p=>exSel.add(p.id));else exSel.clear();}
+function buildExportFieldPicker(){
+  const cp=cu?.role==='admin'||cu?.seePrice;
+  const fields=EXPORT_FIELDS.filter(f=>cp||!PRICE_KEYS.includes(f.key));
+  g('exportFieldPicker').innerHTML=fields.map(f=>`<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" ${selectedExportFields.includes(f.key)?'checked':''} onchange="toggleExField('${f.key}',this)" />${f.label}</label>`).join('');
+}
+function toggleExField(key,el){if(el.checked){if(!selectedExportFields.includes(key))selectedExportFields.push(key);}else selectedExportFields=selectedExportFields.filter(k=>k!==key);}
+function getExportRows(mode){let rows=mode==='sel'&&exSel.size?products.filter(p=>exSel.has(p.id)):[...products];const cat=gv('exCatF'),brand=gv('exBrandF');if(cat)rows=rows.filter(p=>p.category===cat);if(brand)rows=rows.filter(p=>p.brand===brand);return rows;}
+function tabExport(tab){if(tab==='changelog'){exportChangelogExcel();return;}const rows=[...products];doExportRowsExcel(rows);}
+function doExport(type,mode){
+  const rows=getExportRows(mode);if(!rows.length){notif('No products','e');return;}
+  if(type==='pricelist'){exportPricelist(rows);return;}
+  if(type==='stock'){exportStmtRowsPDF(buildStmtRows(rows,'end_user_price'),'end_user_price','Stock Report');return;}
+  if(type==='pdf'){exportInvPDF(rows);return;}
+  if(type==='excel'){doExportRowsExcel(rows);return;}
+}
+function doExportRowsExcel(rows){
+  const cp=cu?.role==='admin'||cu?.seePrice;
+  const fields=selectedExportFields.filter(k=>cp||!PRICE_KEYS.includes(k));
+  const LABELS={code:'Code',serial_number:'Serial No',category:'Category',brand:'Brand',variant:'Variant',yom:'YOM',short_desc:'Short Desc',description:'Long Description',remarks:'Remarks',qty:'Qty',location:'Location',storage_area:'Storage Area',package_type:'Package',weight_kg:'Weight(kg)',dimensions:'Dimensions',invoice_no:'Invoice No',invoice_date:'Invoice Date',dc_waybill:'DC/Waybill',entry_time:'Entry Time',landed:'Landed ₹',list_price:'List Price ₹',bsp:'BSP ₹',dealer_price:'Dealer ₹',end_user_price:'End User ₹'};
+  const headers=fields.map(k=>LABELS[k]||k);
+  const data=[headers,...rows.map(p=>{const pr=p.pricing||{};const dim=p.dim_l||p.dim_w||p.dim_h?`${p.dim_l||''}x${p.dim_w||''}x${p.dim_h||''} ${p.dim_unit}`:'';return fields.map(k=>{if(k==='dimensions')return dim;if(k==='entry_time')return p.entry_time?new Date(p.entry_time).toLocaleString():'';if(PRICE_KEYS.includes(k))return pr[k]||0;return p[k]||'';});})];
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:20}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Inventory');
+  XLSX.writeFile(wb,`Visdil_Inventory_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
+}
+function exportPricelist(rows){
+  if(cu.role!=='admin'&&!cu.seePrice){notif('No pricing access','e');return;}
+  const priceCat=gv('exPriceCat');const cols=priceCat?{[priceCat]:PRICE_LABELS[priceCat]}:{...PRICE_LABELS};
+  const headers=['Code','Category','Brand','Variant','Short Desc',...Object.values(cols)];
+  const data=[headers,...rows.filter(p=>p.pricing).map(p=>[p.code,p.category,p.brand,p.variant||'',p.short_desc,...Object.keys(cols).map(k=>p.pricing?parseFloat(p.pricing[k]||0).toFixed(2):'')])];
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:18}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Price List');
+  XLSX.writeFile(wb,`Visdil_PriceList_${yyyymmdd()}.xlsx`);notif('Price list downloaded!','s');
+}
+function exportInvPDF(rows){
+  const cp=cu?.role==='admin'||cu?.seePrice;
+  const fields=selectedExportFields.filter(k=>(cp||!PRICE_KEYS.includes(k))&&k!=='dimensions');
+  const LABELS={code:'Code',serial_number:'S/N',category:'Cat',brand:'Brand',variant:'Variant',yom:'YOM',short_desc:'Short Desc',description:'Description',remarks:'Remarks',qty:'Qty',location:'Location',storage_area:'Storage',package_type:'Pkg',weight_kg:'Wt(kg)',invoice_no:'Invoice',invoice_date:'Inv Date',dc_waybill:'DC',entry_time:'Entry',landed:'Landed',list_price:'List',bsp:'BSP',dealer_price:'Dealer',end_user_price:'End User'};
+  const mainFields=fields.filter(k=>k!=='description'&&k!=='remarks');
+  const showDesc=fields.includes('description')||fields.includes('remarks');
+  const headers=mainFields.map(k=>LABELS[k]||k);const colW=Math.floor(100/headers.length);
+  const trs=rows.map(p=>{
+    const pr=p.pricing||{};
+    const cells=mainFields.map(k=>{if(k==='entry_time')return p.entry_time?new Date(p.entry_time).toLocaleDateString():'';if(PRICE_KEYS.includes(k))return pr[k]?'₹'+parseFloat(pr[k]).toFixed(2):'';if(k==='qty')return p.qty;return p[k]||'';});
+    let desc='';if(showDesc&&(p.description||p.remarks)){desc=`<tr><td colspan="${headers.length}" style="padding:3px 8px 6px;font-size:8px;color:#444;background:#f8fafc;border-bottom:1px solid #e5e7eb">`;if(p.description)desc+=`<strong>Desc:</strong> ${p.description} `;if(p.remarks)desc+=`<strong>Remarks:</strong> ${p.remarks}`;desc+=`</td></tr>`;}
+    return `<tr>${cells.map(c=>`<td style="width:${colW}%;word-wrap:break-word;overflow-wrap:break-word;white-space:normal">${c}</td>`).join('')}</tr>${desc}`;
+  }).join('');
+  const totalQty=rows.reduce((s,p)=>s+p.qty,0);
+  const totalVal=cp?rows.reduce((s,p)=>s+(p.pricing?.end_user_price||0)*p.qty,0):null;
+  printPage('Inventory Report',`<table style="table-layout:fixed;width:100%"><colgroup>${headers.map(()=>`<col style="width:${colW}%" />`).join('')}</colgroup><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table><div class="sum">Records: ${rows.length} | Total Qty: ${totalQty}${totalVal!==null?' | Value (End User): ₹'+totalVal.toLocaleString('en-IN',{minimumFractionDigits:2}):''}</div>`);
+}
+
+// ════════════════════════════════════════════════════════
+// PRINT
+// ════════════════════════════════════════════════════════
+function printPage(title,bodyHtml){
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Visdil ${title}</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0;padding:0}.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e3a8a;padding-bottom:7px;margin-bottom:9px}.hdr-l h2{font-size:13px;color:#1e3a8a;margin:0 0 2px}.hdr-l p{color:#666;font-size:8px;margin:0}.hdr-r{text-align:right;font-size:8px;color:#444}table{border-collapse:collapse;width:100%;margin-bottom:7px}th{background:#1e3a8a;color:#fff;padding:5px 6px;text-align:left;font-size:8px;font-weight:600;word-wrap:break-word}td{padding:4px 6px;border-bottom:1px solid #e5e7eb;font-size:8px;word-wrap:break-word;overflow-wrap:break-word;vertical-align:top}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#e0e7ff;font-weight:700;font-size:9px}.sum{padding:6px 9px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:8px;font-weight:600}</style></head><body><div class="hdr"><div class="hdr-l"><h2>📦 Visdil Inventory — ${title}</h2><p>Generated: ${new Date().toLocaleString()} · By: ${cu?.name}</p></div><div class="hdr-r">Total Products: ${products.length}</div></div>${bodyHtml}</body></html>`);
+  w.document.close();setTimeout(()=>w.print(),500);
+}
+
+// ════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════
+function g(id){return document.getElementById(id)}
+function gv(id){const el=document.getElementById(id);return el?el.value:'';}
+function sv(id,v){const el=document.getElementById(id);if(el)el.value=v;}
+function fv(id){return parseFloat(document.getElementById(id)?.value)||0;}
+function showO(id){g(id).style.display='flex';}
+function closeM(id){g(id).style.display='none';}
+function bgc(e,id){if(e.target===g(id))closeM(id);}
+function yyyymmdd(){const d=new Date();return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);}
+let _nt;
+function notif(msg,type='i'){
+  const el=g('notif');el.textContent=(type==='s'?'✓ ':type==='e'?'✕ ':'ℹ ')+msg;
+  el.className='notif show n'+(type==='s'?'s':type==='e'?'e':'i2');
+  clearTimeout(_nt);_nt=setTimeout(()=>el.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>
