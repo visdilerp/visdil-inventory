@@ -304,7 +304,7 @@ th.col-drop-right{border-right:2px solid var(--accent)}
 
     <!-- STATEMENT -->
     <div class="tab" id="t-statement">
-      <div class="sh"><div class="stt">Stock Statement</div><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="exportStmtExcel()">⬇ Excel</button><button class="btn btn-ghost btn-sm" onclick="exportStmtPDF()">📄 PDF</button></div></div>
+      <div class="sh"><div class="stt">Stock Statement</div><div id="stmtExportBtns" style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="exportStmtExcel()">⬇ Excel</button><button class="btn btn-ghost btn-sm" onclick="exportStmtPDF()">📄 PDF</button></div></div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:13px">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <select class="flt" id="stmtCat" onchange="renderStatement()"><option value="">All Categories</option></select>
@@ -664,7 +664,7 @@ async function startApp(){
   // show add button
   if(cu.canAdd||cu.role==='admin')g('btnAdd').style.display='';
   // show value section
-  if(cu.seePrice||cu.role==='admin')g('dashValueSection').style.display='block';
+  if(cu.see_price||cu.seePrice||cu.role==='admin')g('dashValueSection').style.display='block';
   buildExportFieldPicker();
   // load data
   g('loadingOverlay').style.display='flex';
@@ -771,7 +771,7 @@ function renderDash(){
   g('s3').textContent=products.filter(p=>p.qty>=10).length;
   g('s4').textContent=products.filter(p=>p.qty>0&&p.qty<10).length;
   g('s5').textContent=products.filter(p=>p.qty===0).length;
-  if(cu?.seePrice||cu?.role==='admin'){
+  if(cu?.seePrice||cu?.see_price||cu?.role==='admin'){
     g('dv_landed').textContent=fmt(calcVal('landed'));g('dv_list').textContent=fmt(calcVal('list_price'));
     g('dv_bsp').textContent=fmt(calcVal('bsp'));g('dv_dealer').textContent=fmt(calcVal('dealer_price'));g('dv_mrp').textContent=fmt(calcVal('end_user_price'));
   }
@@ -949,7 +949,7 @@ async function cloneProd(id){
 function viewProd(id){
   const p=products.find(x=>x.id===id);if(!p)return;
   const pr=_dbPricing[p.id];
-  const cp=cu.role==='admin'||cu.seePrice;
+  const cp=cu.role==='admin'||!!(cu.seePrice||cu.see_price);
   const qc=p.qty===0?'var(--red)':p.qty<10?'var(--amber)':'var(--green)';
   const row=(l,v)=>v?`<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">${l}</div><div>${v}</div></div>`:'';
   const dim=p.dim_l||p.dim_w||p.dim_h?`${p.dim_l||'?'}×${p.dim_w||'?'}×${p.dim_h||'?'} ${p.dim_unit}`:'';
@@ -1067,10 +1067,12 @@ function popStmtFilters(){
   ['stmtCat','stmtBrand'].forEach(id=>{const el=g(id),v=el.value;const vals=[...new Set(products.map(p=>id==='stmtCat'?p.category:p.brand))].sort();el.innerHTML=(id==='stmtCat'?'<option value="">All Categories</option>':'<option value="">All Brands</option>')+vals.map(x=>`<option>${x}</option>`).join('');el.value=v;});
   // hide price basis selector for users without pricing access
   const basisEl=g('stmtBasis');
-  if(basisEl)basisEl.style.display=(cu?.role==='admin'||cu?.seePrice)?'':'none';
+  if(basisEl)basisEl.style.display=(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price))?'':'none';
+  const expBtns=g('stmtExportBtns');
+  if(expBtns)expBtns.style.display=(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price))?'flex':'none';
   // hide export buttons if no pricing access
   const stmtExBtns=document.querySelectorAll('#t-statement .btn-ghost');
-  stmtExBtns.forEach(b=>{if(b.textContent.includes('Excel')||b.textContent.includes('PDF'))b.style.display=(cu?.role==='admin'||cu?.seePrice||b.closest('.mft'))?'':'none';});
+  stmtExBtns.forEach(b=>{if(b.textContent.includes('Excel')||b.textContent.includes('PDF'))b.style.display=(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price)||b.closest('.mft'))?'':'none';});
 }
 function buildStmtRows(src,basis){
   return src.map(p=>{const pr=_dbPricing[p.id];const up=pr?parseFloat(pr[basis]||0):0;return{...p,up,sv:up*p.qty,status:p.qty===0?'Out of Stock':p.qty<10?'Low Stock':'In Stock'};});
@@ -1087,9 +1089,9 @@ function renderStatement(){
   });
   const rows=buildStmtRows(fl,basis);
   const tq=rows.reduce((s,r)=>s+r.qty,0),tv=rows.reduce((s,r)=>s+r.sv,0),wp=rows.filter(r=>r.up>0).length;
-  const _sp=cu?.role==='admin'||cu?.seePrice;
+  const _sp=cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price);
   g('stmtSummary').innerHTML=`<div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${tq}</div></div>${_sp?`<div class="stmt-card"><div class="stmt-card-label">Priced</div><div class="stmt-card-val" style="color:var(--green)">${wp}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Value (${PL[basis]})</div><div class="stmt-card-val" style="color:var(--accent)">${fmt(tv)}</div></div>`:'<div class="stmt-card"><div class="stmt-card-label">Note</div><div class="stmt-card-val" style="font-size:13px;color:var(--text2)">No pricing access</div></div>'}`;
-  const showPrice=cu?.role==='admin'||cu?.seePrice;
+  const showPrice=cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price);
   const stmtCols=[
     {key:'code',label:'Code'},{key:'category',label:'Category'},{key:'brand',label:'Brand'},
     {key:'variant',label:'Variant'},{key:'short_desc',label:'Product'},{key:'qty',label:'Qty'},
@@ -1256,7 +1258,7 @@ function renderExport(){
 }
 function toggleExAll(el){document.querySelectorAll('#exTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);if(el.checked)products.forEach(p=>exSel.add(p.id));else exSel.clear();}
 function buildExportFieldPicker(){
-  const cp=cu?.role==='admin'||cu?.seePrice;
+  const cp=cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price);
   const fields=EF.filter(f=>cp||!PK.includes(f.key));
   g('exportFieldPicker').innerHTML=fields.map(f=>`<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0"><input type="checkbox" ${selEF.includes(f.key)?'checked':''} onchange="toggleEF('${f.key}',this)"/>${f.label}</label>`).join('');
 }
@@ -1271,7 +1273,7 @@ function doExport(type,mode){
   if(type==='excel'){doExportRowsExcel(rows);return;}
 }
 function doExportRowsExcel(rows){
-  const cp=cu?.role==='admin'||cu?.seePrice;
+  const cp=cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price);
   const fields=selEF.filter(k=>cp||!PK.includes(k));
   const LABELS={code:'Code',serial_number:'Serial No',category:'Category',brand:'Brand',variant:'Variant',yom:'YOM',short_desc:'Short Desc',description:'Long Desc',remarks:'Remarks',qty:'Qty',location:'Location',storage_area:'Storage Area',package_type:'Package',weight_kg:'Weight(kg)',invoice_no:'Invoice No',invoice_date:'Invoice Date',dc_waybill:'DC/Waybill',entry_time:'Entry Time',landed:'Landed ₹',list_price:'List Price ₹',bsp:'BSP ₹',dealer_price:'Dealer ₹',end_user_price:'End User ₹'};
   const h=fields.map(k=>LABELS[k]||k);
@@ -1281,7 +1283,7 @@ function doExportRowsExcel(rows){
   XLSX.writeFile(wb,`Visdil_Inventory_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
 }
 function exportPricelist(rows){
-  if(cu.role!=='admin'&&!cu.seePrice){notif('No pricing access','e');return;}
+  if(cu.role!=='admin'&&!cu.seePrice&&!cu.see_price){notif('No pricing access','e');return;}
   const h=['Code','Category','Brand','Variant','Short Desc',...Object.values(PL)];
   const d=[h,...rows.filter(p=>_dbPricing[p.id]).map(p=>[p.code,p.category,p.brand,p.variant||'',p.short_desc,...PK.map(k=>{const pr=_dbPricing[p.id];return pr?parseFloat(pr[k]||0).toFixed(2):'';})]) ];
   const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=h.map(()=>({wch:18}));
@@ -1289,7 +1291,7 @@ function exportPricelist(rows){
   XLSX.writeFile(wb,`Visdil_PriceList_${yyyymmdd()}.xlsx`);notif('Price list downloaded!','s');
 }
 function exportInvPDF(rows){
-  const cp=cu?.role==='admin'||cu?.seePrice;
+  const cp=cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price);
   const fields=selEF.filter(k=>cp||!PK.includes(k));
   const LABELS={code:'Code',serial_number:'S/N',category:'Cat',brand:'Brand',variant:'Variant',yom:'YOM',short_desc:'Short Desc',qty:'Qty',location:'Location',storage_area:'Storage',package_type:'Pkg',weight_kg:'Wt(kg)',invoice_no:'Invoice',invoice_date:'Inv Date',dc_waybill:'DC',entry_time:'Entry',landed:'Landed',list_price:'List',bsp:'BSP',dealer_price:'Dealer',end_user_price:'End User'};
   const mf=fields.filter(k=>k!=='description'&&k!=='remarks');
