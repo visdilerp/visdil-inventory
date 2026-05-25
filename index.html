@@ -385,6 +385,25 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         <button id="mvDirBtn1" class="btn btn-ghost btn-sm"  style="border-radius:6px 6px 0 0;border-bottom:none;margin-left:4px" onclick="showMvDir(1)">⬇️ Outward</button>
       </div>
 
+      <!-- DATE RANGE FILTER -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:0 0 var(--r) var(--r);padding:10px 14px;margin-bottom:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Filter by Date:</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-xs" id="mvdf0" onclick="setMvDateFilter('all')">All Time</button>
+          <button class="btn btn-ghost btn-xs" id="mvdf1" onclick="setMvDateFilter('month')">This Month</button>
+          <button class="btn btn-ghost btn-xs" id="mvdf2" onclick="setMvDateFilter('quarter')">This Quarter</button>
+          <button class="btn btn-ghost btn-xs" id="mvdf3" onclick="setMvDateFilter('year')">This Year</button>
+          <button class="btn btn-ghost btn-xs" id="mvdf4" onclick="setMvDateFilter('finyear')">Financial Year</button>
+          <button class="btn btn-ghost btn-xs" id="mvdf5" onclick="setMvDateFilter('custom')">Custom</button>
+        </div>
+        <div id="mvCustomDates" style="display:none;display:flex;gap:6px;align-items:center">
+          <input type="date" id="mvDateFrom" class="flt" style="padding:4px 7px;font-size:12px" onchange="applyMvDateFilter()"/>
+          <span style="color:var(--text2);font-size:12px">to</span>
+          <input type="date" id="mvDateTo" class="flt" style="padding:4px 7px;font-size:12px" onchange="applyMvDateFilter()"/>
+        </div>
+        <div id="mvDateRangeLabel" style="font-size:11px;color:var(--accent);font-weight:600"></div>
+      </div>
+
       <!-- ═══ INWARD ═══ -->
       <div id="mvDir0">
         <div style="display:flex;gap:7px;padding:10px 0 6px;flex-wrap:wrap">
@@ -564,8 +583,9 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         <div class="fg2"><label>Remarks</label><textarea id="frm" style="min-height:50px"></textarea></div>
       </div>
       <div class="fsec"><div class="fsec-t">📍 Stock & Location</div>
-        <div class="frow3">
+        <div class="frow4">
           <div class="fg2"><label>Quantity *</label><input type="number" id="fq" min="0" /></div>
+          <div class="fg2"><label>Min / Low Stock Alert Qty</label><input type="number" id="fminqty" min="0" placeholder="Default: 2" /></div>
           <div class="fg2"><label>Location</label><input type="text" id="fl" /></div>
           <div class="fg2"><label>Storage Area</label><input type="text" id="fst" /></div>
         </div>
@@ -756,6 +776,39 @@ let products=[],_dbPricing={},_dbUsers=[],_dbLog=[];
 let exSel=new Set(),stmtSel=new Set();
 let _imgData=null,_invData=null,_dcData=null;
 let _modalBasis='landed',_colEditTab=null,_colEditState=null;
+
+// Low stock threshold helper (per-product min_qty, default 2)
+function getLowThreshold(p){ return p.min_qty!=null&&p.min_qty>0?p.min_qty:2; }
+function getStockStatus(p){
+  const t=getLowThreshold(p);
+  if(p.qty===0)return 'out';
+  if(p.qty<=t)return 'low';
+  return 'in';
+}
+function getStatusBadge(p){
+  const st=getStockStatus(p);
+  if(st==='out')return `<span class="badge br">Out</span>`;
+  if(st==='low')return `<span class="badge ba">Low(${p.qty})</span>`;
+  return `<span class="badge bg">${p.qty}</span>`;
+}
+function getStatusLabel(p){
+  const st=getStockStatus(p);
+  if(st==='out')return 'Out of Stock';
+  if(st==='low')return 'Low Stock';
+  return 'In Stock';
+}
+function getStatusColor(p){
+  const st=getStockStatus(p);
+  if(st==='out')return 'var(--red)';
+  if(st==='low')return 'var(--amber)';
+  return 'var(--green)';
+}
+function getStatusCss(p){
+  const st=getStockStatus(p);
+  if(st==='out')return 'br';
+  if(st==='low')return 'ba';
+  return 'bg';
+}
 
 const PL={landed:'Landed',list_price:'List Price',bsp:'BSP',dealer_price:'Dealer',end_user_price:'End User/MRP'};
 const PK=Object.keys(PL);
@@ -1001,9 +1054,9 @@ function hasPricingAccess(){ return !!(cu?.role==='admin'||cu?.seePrice||cu?.see
 function renderDash(){
   g('s1').textContent=products.length;
   g('s2').textContent=products.reduce((s,p)=>s+p.qty,0);
-  g('s3').textContent=products.filter(p=>p.qty>=10).length;
-  g('s4').textContent=products.filter(p=>p.qty>0&&p.qty<10).length;
-  g('s5').textContent=products.filter(p=>p.qty===0).length;
+  g('s3').textContent=products.filter(p=>getStockStatus(p)==='in').length;
+  g('s4').textContent=products.filter(p=>getStockStatus(p)==='low').length;
+  g('s5').textContent=products.filter(p=>getStockStatus(p)==='out').length;
   // update activity section title based on role
   const actTitle=g('actTitle');
   const exportLogBtn=g('exportLogBtn');
@@ -1048,7 +1101,7 @@ function renderStmtModal(){
   const cat=gv('modalStmtCat'),brand=gv('modalStmtBrand');
   const rows=buildStmtRows(products.filter(p=>(!cat||p.category===cat)&&(!brand||p.brand===brand)),_modalBasis);
   const tq=rows.reduce((s,r)=>s+r.qty,0),tv=rows.reduce((s,r)=>s+r.sv,0);
-  g('stmtModalBody').innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px"><div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${tq}</div></div><div class="stmt-card"><div class="stmt-card-label">Value (${PL[_modalBasis]})</div><div class="stmt-card-val" style="color:var(--green)">${fmt(tv)}</div></div></div><div style="overflow-x:auto;max-height:50vh"><table><thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price</th><th>Stock Value</th></tr></thead><tbody>${rows.map(r=>{const c=r.qty===0?'var(--red)':r.qty<10?'var(--amber)':'var(--green)';const sl=r.qty===0?'Out':r.qty<10?'Low':'In Stock';return `<tr><td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||'—'}</td><td><strong>${r.short_desc}</strong></td><td style="font-weight:700">${r.qty}</td><td style="color:${c};font-size:12px">${sl}</td><td class="pv">${r.up>0?fmt(r.up):'<span class="ph">—</span>'}</td><td style="font-weight:700;color:var(--accent)">${r.up>0?fmt(r.sv):'—'}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:var(--bg3)"><td colspan="5" style="font-weight:700;padding:9px 10px">TOTAL</td><td style="font-weight:700">${tq}</td><td></td><td></td><td style="font-weight:700;color:var(--accent)">${fmt(tv)}</td></tr></tfoot></table></div>`;
+  g('stmtModalBody').innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px"><div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${tq}</div></div><div class="stmt-card"><div class="stmt-card-label">Value (${PL[_modalBasis]})</div><div class="stmt-card-val" style="color:var(--green)">${fmt(tv)}</div></div></div><div style="overflow-x:auto;max-height:50vh"><table><thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price</th><th>Stock Value</th></tr></thead><tbody>${rows.map(r=>{const c=getStatusColor(r);const sl=getStatusLabel(r).replace(' Stock','');return `<tr><td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||'—'}</td><td><strong>${r.short_desc}</strong></td><td style="font-weight:700">${r.qty}</td><td style="color:${c};font-size:12px">${sl}</td><td class="pv">${r.up>0?fmt(r.up):'<span class="ph">—</span>'}</td><td style="font-weight:700;color:var(--accent)">${r.up>0?fmt(r.sv):'—'}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:var(--bg3)"><td colspan="5" style="font-weight:700;padding:9px 10px">TOTAL</td><td style="font-weight:700">${tq}</td><td></td><td></td><td style="font-weight:700;color:var(--accent)">${fmt(tv)}</td></tr></tfoot></table></div>`;
 }
 function exportStmtModalExcel(){exportStmtRowsExcel(buildStmtRows(products.filter(p=>{const cat=gv('modalStmtCat'),brand=gv('modalStmtBrand');return(!cat||p.category===cat)&&(!brand||p.brand===brand);}),_modalBasis),_modalBasis);}
 function exportStmtModalPDF(){exportStmtRowsPDF(buildStmtRows(products.filter(p=>{const cat=gv('modalStmtCat'),brand=gv('modalStmtBrand');return(!cat||p.category===cat)&&(!brand||p.brand===brand);}),_modalBasis),_modalBasis,'All Products');}
@@ -1111,7 +1164,7 @@ function renderProducts(){
   }).join('')+'</tr>';
   if(!fl.length){g('prodTbl').innerHTML=`<tr><td colspan="${cols.length}" style="text-align:center;padding:28px;color:var(--text3)">No products found</td></tr>`;return;}
   g('prodTbl').innerHTML=fl.map(p=>{
-    const qb=p.qty===0?`<span class="badge br">Out</span>`:p.qty<10?`<span class="badge ba">Low(${p.qty})</span>`:`<span class="badge bg">${p.qty}</span>`;
+    const qb=getStatusBadge(p);
     const canEd=cu.canEdit||cu.role==='admin',canDel=cu.canDelete||cu.role==='admin',canCl=cu.canAdd||cu.role==='admin';
     return '<tr>'+cols.map(c=>{
       if(c.key==='sel')return `<td><input type="checkbox" ${exSel.has(p.id)?'checked':''} onchange="exSel[this.checked?'add':'delete']('${p.id}')"/></td>`;
@@ -1128,7 +1181,7 @@ function openProdModal(id){
   const p=id?products.find(x=>x.id===id):null;
   g('pmT').textContent=id?'Edit Product':'Add Product';sv('eid',id||'');
   _imgData=null;_invData=null;_dcData=null;
-  ['fc','fsn','fyom','fcat','fbr','fvar','fpkg','fsd','fdd','frm','fq','fl','fst','fdl','fdw','fdh','fwt','finv','fdc'].forEach(f=>sv(f,''));
+  ['fc','fsn','fyom','fcat','fbr','fvar','fpkg','fsd','fdd','frm','fq','fminqty','fl','fst','fdl','fdw','fdh','fwt','finv','fdc'].forEach(f=>sv(f,''));
   sv('fdu','mm');sv('find','');sv('fet','');
   g('imgPreview').style.display='none';g('imgClear').style.display='none';g('imgPlaceholder').style.display='';
   g('invFileName').textContent='Click to upload Invoice PDF';g('invClear').style.display='none';
@@ -1136,7 +1189,7 @@ function openProdModal(id){
   if(p){
     sv('fc',p.code);sv('fsn',p.serial_number||'');sv('fyom',p.yom||'');sv('fcat',p.category);sv('fbr',p.brand);sv('fvar',p.variant||'');
     sv('fpkg',p.package_type||'');sv('fsd',p.short_desc);sv('fdd',p.description||'');sv('frm',p.remarks||'');
-    sv('fq',p.qty);sv('fl',p.location||'');sv('fst',p.storage_area||'');
+    sv('fq',p.qty);sv('fminqty',p.min_qty!=null?p.min_qty:'');sv('fl',p.location||'');sv('fst',p.storage_area||'');
     sv('fdl',p.dim_l||'');sv('fdw',p.dim_w||'');sv('fdh',p.dim_h||'');sv('fdu',p.dim_unit||'mm');sv('fwt',p.weight_kg||'');
     sv('finv',p.invoice_no||'');sv('fdc',p.dc_waybill||'');
     if(p.invoice_date)sv('find',p.invoice_date);
@@ -1154,7 +1207,7 @@ async function saveProduct(){
   const pid=gv('eid');
   setBtnLoad('saveProdBtn','Saving...');
   try{
-    const row={code,serial_number:gv('fsn').trim()||null,yom:gv('fyom').trim()||null,category:cat,brand,variant:gv('fvar').trim()||null,package_type:gv('fpkg').trim()||null,short_desc:sd,description:gv('fdd').trim()||null,remarks:gv('frm').trim()||null,qty:parseInt(qty)||0,location:gv('fl').trim()||null,storage_area:gv('fst').trim()||null,dim_l:fv('fdl')||null,dim_w:fv('fdw')||null,dim_h:fv('fdh')||null,dim_unit:gv('fdu'),weight_kg:fv('fwt')||null,invoice_no:gv('finv').trim()||null,invoice_date:gv('find')||null,dc_waybill:gv('fdc').trim()||null,entry_time:gv('fet')||new Date().toISOString(),updated_at:new Date().toISOString(),created_by:cu.name,image:_imgData||null,inv_pdf:_invData||null,inv_pdf_name:_invData?g('invFileName').textContent:null,dc_pdf:_dcData||null,dc_pdf_name:_dcData?g('dcFileName').textContent:null};
+    const row={code,serial_number:gv('fsn').trim()||null,yom:gv('fyom').trim()||null,category:cat,brand,variant:gv('fvar').trim()||null,package_type:gv('fpkg').trim()||null,short_desc:sd,description:gv('fdd').trim()||null,remarks:gv('frm').trim()||null,qty:parseInt(qty)||0,min_qty:gv('fminqty')!==''?parseInt(gv('fminqty')):2,location:gv('fl').trim()||null,storage_area:gv('fst').trim()||null,dim_l:fv('fdl')||null,dim_w:fv('fdw')||null,dim_h:fv('fdh')||null,dim_unit:gv('fdu'),weight_kg:fv('fwt')||null,invoice_no:gv('finv').trim()||null,invoice_date:gv('find')||null,dc_waybill:gv('fdc').trim()||null,entry_time:gv('fet')||new Date().toISOString(),updated_at:new Date().toISOString(),created_by:cu.name,image:_imgData||null,inv_pdf:_invData||null,inv_pdf_name:_invData?g('invFileName').textContent:null,dc_pdf:_dcData||null,dc_pdf_name:_dcData?g('dcFileName').textContent:null};
     if(pid){
       const old=products.find(x=>x.id===pid);
       const{error}=await sb.from('products').update(row).eq('id',pid);
@@ -1163,9 +1216,18 @@ async function saveProduct(){
       await addLog('Product Updated',row.short_desc,'Code: '+row.code,'','');
       notif('Product updated!','s');
     }else{
-      const{error}=await sb.from('products').insert([row]);
+      const{data:data_inserted,error}=await sb.from('products').insert([row]).select().single();
       if(error)throw error;
       await addLog('Product Added',row.short_desc,'Code: '+row.code,'',row.qty);
+      // auto-create stock_in movement log entry
+      if(data_inserted&&row.qty>0){
+        const initMv={product_id:data_inserted.id,product_code:row.code,product_desc:row.short_desc,
+          qty_change:row.qty,old_qty:0,new_qty:row.qty,movement_type:'stock_in',
+          movement_date:row.entry_time||new Date().toISOString(),
+          invoice_no:row.invoice_no||null,invoice_date:row.invoice_date||null,
+          waybill_no:row.dc_waybill||null,dc_no:null,remarks:'Initial stock entry on product creation',done_by:cu.name};
+        await sb.from('movement_log').insert([initMv]).then(r=>{if(r.error)console.warn('init mv:',r.error.message);});
+      }
       notif('Product added!','s');
     }
     const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
@@ -1202,24 +1264,50 @@ function viewProd(id){
   const p=products.find(x=>x.id===id);if(!p)return;
   const pr=_dbPricing[p.id];
   const cp=cu.role==='admin'||!!(cu.seePrice||cu.see_price);
-  const qc=p.qty===0?'var(--red)':p.qty<10?'var(--amber)':'var(--green)';
+  const qc=getStatusColor(p);
   const row=(l,v)=>v?`<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">${l}</div><div>${v}</div></div>`:'';
   const dim=p.dim_l||p.dim_w||p.dim_h?`${p.dim_l||'?'}×${p.dim_w||'?'}×${p.dim_h||'?'} ${p.dim_unit}`:'';
   let ph='';if(cp&&pr){ph=`<div style="margin-top:13px;border-top:1px solid var(--border);padding-top:11px"><div style="font-size:11px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;font-weight:600">Pricing</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px">${PK.map(k=>`<div style="background:var(--bg3);border-radius:6px;padding:7px 9px"><div style="font-size:10px;color:var(--text2)">${PL[k]}</div><div class="pv">₹${parseFloat(pr[k]||0).toFixed(2)}</div></div>`).join('')}</div></div>`;}
   let docs='';if(p.inv_pdf)docs+=`<button class="btn btn-ghost btn-xs" onclick="dlFile('${p.id}','inv')">📄 Invoice</button> `;if(p.dc_pdf)docs+=`<button class="btn btn-ghost btn-xs" onclick="dlFile('${p.id}','dc')">📄 DC/Waybill</button>`;
   let imgH=p.image?`<img src="${p.image}" style="max-width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-bottom:11px;display:block" />`:'';
-  // inward history section
+  // inward history section — all stock_in entries, each editable
   const inHist=getProductInwardHistory(p.id);
   let histHtml='';
   if(inHist.length>0){
+    const rows=inHist.map((r,ri)=>{
+      const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
+      return `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:5px 8px;color:var(--text2);font-size:11px;white-space:nowrap">${fmtD(r.movement_date)}</td>
+        <td style="padding:5px 8px;color:var(--green);font-weight:700">+${r.qty_change}</td>
+        <td style="padding:5px 8px">${r.invoice_no||'—'}</td>
+        <td style="padding:5px 8px">${r.invoice_date?fmtD(r.invoice_date):'—'}</td>
+        <td style="padding:5px 8px">${r.waybill_no||'—'}</td>
+        <td style="padding:5px 8px">${r.dc_no||'—'}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--text2)">${r.remarks||'—'}</td>
+        <td style="padding:5px 8px"><button class="btn btn-ghost btn-xs" onclick="openEditMvModal('${r.id}');closeM('viewModal')">✏️</button></td>
+      </tr>`;
+    }).join('');
     histHtml=`<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-      <div style="font-size:11px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;font-weight:600">📥 Stock-In History (${inHist.length} entries)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;text-transform:uppercase;color:var(--text2);font-weight:600">📥 Stock-In History (${inHist.length} entries)</div>
+        <div style="font-size:11px;color:var(--text2)">Click ✏️ to edit any entry</div>
+      </div>
       <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="background:var(--bg3)"><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Date</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Qty Added</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Invoice No</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Invoice Date</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Waybill</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">DC No</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Remarks</th></tr></thead>
-        <tbody>${inHist.map(r=>`<tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text2)">${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td style="padding:5px 8px;color:var(--green);font-weight:700">+${r.qty_change}</td><td style="padding:5px 8px">${r.invoice_no||'—'}</td><td style="padding:5px 8px">${r.invoice_date?new Date(r.invoice_date).toLocaleDateString('en-IN'):'—'}</td><td style="padding:5px 8px">${r.waybill_no||'—'}</td><td style="padding:5px 8px">${r.dc_no||'—'}</td><td style="padding:5px 8px;color:var(--text2)">${r.remarks||'—'}</td></tr>`).join('')}
-        </tbody>
+        <thead><tr style="background:var(--bg3)">
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Date</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Qty</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Invoice No</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Invoice Date</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Waybill</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">DC No</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Remarks</th>
+          <th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Edit</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
       </table></div>
     </div>`;
+  } else {
+    histHtml=`<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><div style="font-size:12px;color:var(--text3)">No stock-in history recorded yet.</div></div>`;
   }
   g('viewBody').innerHTML=`${imgH}<div style="display:flex;gap:11px;align-items:flex-start;margin-bottom:13px"><div style="background:var(--bg3);border-radius:7px;padding:8px 12px;font-size:15px;font-weight:700;color:var(--accent);font-family:monospace;flex-shrink:0">${p.code}</div><div><div style="font-size:16px;font-weight:600">${p.short_desc}</div><div style="color:var(--text2);font-size:12px;margin-top:2px">${p.brand}${p.variant?' · '+p.variant:''}${p.yom?' · YOM:'+p.yom:''}</div></div></div>${p.description?`<div style="background:var(--bg3);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px;line-height:1.6">${p.description}</div>`:''} ${p.remarks?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px"><strong style="color:var(--amber)">Remarks:</strong> ${p.remarks}</div>`:''}<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;margin-bottom:11px">${row('Category',p.category)}${row('Brand',p.brand)}${row('Variant',p.variant)}${row('Serial No',p.serial_number)}${row('Package',p.package_type)}<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Stock</div><div style="color:${qc};font-weight:700;font-size:15px">${p.qty} units</div></div>${row('Location',p.location)}${row('Storage',p.storage_area)}${row('Dimensions',dim)}${row('Weight',p.weight_kg?p.weight_kg+' kg':'')}${row('Invoice No',p.invoice_no)}${row('Invoice Date',p.invoice_date)}${row('DC/Waybill',p.dc_waybill)}${row('Entry Time',p.entry_time?new Date(p.entry_time).toLocaleString():'')}</div>${docs?`<div style="display:flex;gap:7px;margin-bottom:11px">${docs}</div>`:''}${ph}${histHtml||''}`;
   showO('viewModal');
@@ -1255,7 +1343,7 @@ function renderStock(){
     return `<th style="min-width:${c.w||80}px" class="${skip?'':'sortable'} ${sortCls} col-drag" data-col="${c.key}" draggable="${!skip}" onclick="thSort('stock','${c.key}','${skip}')" ondragstart="thDragStart(event,'stock',${ci})" ondragover="thDragOver(event,${ci})" ondrop="thDrop(event,'stock',${ci})" ondragleave="thDragLeave(event)">${c.label}</th>`;
   }).join('')+'</tr>';
   g('stockTbl').innerHTML=fl.map(p=>{
-    const sc=p.qty===0?'br':p.qty<10?'ba':'bg',sl=p.qty===0?'Out of Stock':p.qty<10?'Low Stock':'In Stock';
+    const sc=getStatusCss(p),sl=getStatusLabel(p);
     return '<tr>'+cols.map(c=>{
       if(c.key==='status')return `<td><span class="badge ${sc}">${sl}</span></td>`;
       if(c.key==='qty')return `<td style="font-weight:700;font-size:15px">${p.qty}</td>`;
@@ -1340,14 +1428,14 @@ function popStmtFilters(){
   stmtExBtns.forEach(b=>{if(b.textContent.includes('Excel')||b.textContent.includes('PDF'))b.style.display=(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price)||b.closest('.mft'))?'':'none';});
 }
 function buildStmtRows(src,basis){
-  return src.map(p=>{const pr=_dbPricing[p.id];const up=pr?parseFloat(pr[basis]||0):0;return{...p,up,sv:up*p.qty,status:p.qty===0?'Out of Stock':p.qty<10?'Low Stock':'In Stock'};});
+  return src.map(p=>{const pr=_dbPricing[p.id];const up=pr?parseFloat(pr[basis]||0):0;return{...p,up,sv:up*p.qty,status:getStatusLabel(p)};});
 }
 function renderStatement(){
   const basis=gv('stmtBasis')||'landed';
   const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();
   const fl=products.filter(p=>{
     if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;
-    if(status==='in'&&p.qty<10)return false;if(status==='low'&&(p.qty===0||p.qty>=10))return false;
+    if(status==='in'&&getStockStatus(p)!=='in')return false;if(status==='low'&&getStockStatus(p)!=='low')return false;
     if(status==='out'&&p.qty!==0)return false;
     if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;
     return true;
@@ -1370,11 +1458,11 @@ function renderStatement(){
   }).join('')+`</tr>`;
   // apply statement sort
   if(sm.col){const dir=sm.dir;rows=[...rows].sort((a,b)=>{const av=a[sm.col]??0,bv=b[sm.col]??0;if(typeof av==='number')return dir*(av-bv);return dir*String(av).localeCompare(String(bv));});}
-  g('stmtTbl').innerHTML=rows.map(r=>{const sc=r.qty===0?'br':r.qty<10?'ba':'bg';return `<tr><td><input type="checkbox" ${stmtSel.has(r.id)?'checked':''} onchange="stmtSel[this.checked?'add':'delete']('${r.id}')"/></td>`+stmtCols.map(c=>{if(c.key==='code')return `<td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td>`;if(c.key==='short_desc')return `<td><strong>${r.short_desc}</strong></td>`;if(c.key==='qty')return `<td style="font-weight:700">${r.qty}</td>`;if(c.key==='status')return `<td><span class="badge ${sc}">${r.status}</span></td>`;if(c.key==='up')return `<td class="pv">${r.up>0?fmt(r.up):'<span class="ph">—</span>'}</td>`;if(c.key==='sv')return `<td style="font-weight:700;color:var(--accent)">${r.up>0?fmt(r.sv):'—'}</td>`;return `<td>${r[c.key]||'—'}</td>`;}).join('')+`</tr>`;}).join('');
+  g('stmtTbl').innerHTML=rows.map(r=>{const sc=getStatusCss(r);return `<tr><td><input type="checkbox" ${stmtSel.has(r.id)?'checked':''} onchange="stmtSel[this.checked?'add':'delete']('${r.id}')"/></td>`+stmtCols.map(c=>{if(c.key==='code')return `<td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td>`;if(c.key==='short_desc')return `<td><strong>${r.short_desc}</strong></td>`;if(c.key==='qty')return `<td style="font-weight:700">${r.qty}</td>`;if(c.key==='status')return `<td><span class="badge ${sc}">${r.status}</span></td>`;if(c.key==='up')return `<td class="pv">${r.up>0?fmt(r.up):'<span class="ph">—</span>'}</td>`;if(c.key==='sv')return `<td style="font-weight:700;color:var(--accent)">${r.up>0?fmt(r.sv):'—'}</td>`;return `<td>${r[c.key]||'—'}</td>`;}).join('')+`</tr>`;}).join('');
   g('stmtFoot').innerHTML=`<tr style="background:var(--bg3)"><td></td><td colspan="${stmtCols.length-1}" style="font-weight:700;padding:9px 10px">TOTAL (${rows.length} products)</td><td style="font-weight:700">${tq}</td>${showPrice?`<td></td><td style="font-weight:700;font-size:15px;color:var(--accent)">${fmt(tv)}</td>`:''}</tr>`;
 }
 function toggleStmtSel(el){document.querySelectorAll('#stmtTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);const fl=products.filter(p=>{const cat=gv('stmtCat'),brand=gv('stmtBrand');return(!cat||p.category===cat)&&(!brand||p.brand===brand);});if(el.checked)fl.forEach(p=>stmtSel.add(p.id));else stmtSel.clear();}
-function getStmtRows(){const basis=gv('stmtBasis')||'landed';const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();const src=products.filter(p=>{if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;if(status==='in'&&p.qty<10)return false;if(status==='low'&&(p.qty===0||p.qty>=10))return false;if(status==='out'&&p.qty!==0)return false;if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;return true;});return{rows:buildStmtRows(stmtSel.size?src.filter(p=>stmtSel.has(p.id)):src,basis),basis};}
+function getStmtRows(){const basis=gv('stmtBasis')||'landed';const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();const src=products.filter(p=>{if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;if(status==='in'&&getStockStatus(p)!=='in')return false;if(status==='low'&&getStockStatus(p)!=='low')return false;if(status==='out'&&p.qty!==0)return false;if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;return true;});return{rows:buildStmtRows(stmtSel.size?src.filter(p=>stmtSel.has(p.id)):src,basis),basis};}
 function exportStmtExcel(){const{rows,basis}=getStmtRows();exportStmtRowsExcel(rows,basis);}
 function exportStmtPDF(){const{rows,basis}=getStmtRows();exportStmtRowsPDF(rows,basis,stmtSel.size?'Selected':(gv('stmtCat')||'All Products'));}
 function exportStmtRowsExcel(rows,basis){
@@ -1387,7 +1475,7 @@ function exportStmtRowsExcel(rows,basis){
 }
 function exportStmtRowsPDF(rows,basis,scope){
   const tq=rows.reduce((s,r)=>s+r.qty,0),tv=rows.reduce((s,r)=>s+r.sv,0);
-  const trs=rows.map(r=>{const c=r.qty===0?'#dc2626':r.qty<10?'#d97706':'#059669';return `<tr><td>${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||''}</td><td>${r.short_desc}</td><td style="font-weight:700">${r.qty}</td><td style="color:${c}">${r.status}</td><td>${r.up>0?'₹'+r.up.toFixed(2):'—'}</td><td style="font-weight:700;color:#1e40af">${r.up>0?'₹'+r.sv.toFixed(2):'—'}</td></tr>`;}).join('');
+  const trs=rows.map(r=>{const c=getStockStatus(r)==='out'?'#dc2626':getStockStatus(r)==='low'?'#d97706':'#059669';return `<tr><td>${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||''}</td><td>${r.short_desc}</td><td style="font-weight:700">${r.qty}</td><td style="color:${c}">${r.status}</td><td>${r.up>0?'₹'+r.up.toFixed(2):'—'}</td><td style="font-weight:700;color:#1e40af">${r.up>0?'₹'+r.sv.toFixed(2):'—'}</td></tr>`;}).join('');
   printPage(`Stock Statement — ${PL[basis]}`,`<p style="margin-bottom:8px;font-size:9px;color:#555">Scope: ${scope} | Basis: ${PL[basis]} | Products: ${rows.length} | Units: ${tq} | Value: ₹${tv.toLocaleString('en-IN',{minimumFractionDigits:2})}</p><table><thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price</th><th>Stock Value</th></tr></thead><tbody>${trs}</tbody><tfoot><tr style="background:#e0e7ff"><td colspan="5" style="font-weight:700">TOTAL</td><td style="font-weight:700">${tq}</td><td></td><td></td><td style="font-weight:700;color:#1e40af">₹${tv.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr></tfoot></table>`);
 }
 
@@ -1540,7 +1628,7 @@ function popExFilters(){
 function renderExport(){
   const s=gv('exsrch').toLowerCase();
   const fl=products.filter(p=>!s||(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s));
-  g('exTbl').innerHTML=fl.map(p=>{const sc=p.qty===0?'br':p.qty<10?'ba':'bg';const sl=p.qty===0?'Out':p.qty<10?'Low':'In Stock';return `<tr><td><input type="checkbox" ${exSel.has(p.id)?'checked':''} onchange="exSel[this.checked?'add':'delete']('${p.id}')"/></td><td style="font-family:monospace;font-size:12px;color:var(--accent)">${p.code}</td><td>${p.category}</td><td>${p.brand}</td><td>${p.variant||'—'}</td><td>${p.short_desc}</td><td style="font-weight:700">${p.qty}</td><td><span class="badge ${sc}">${sl}</span></td></tr>`;}).join('');
+  g('exTbl').innerHTML=fl.map(p=>{const sc=getStatusCss(p);const sl=getStatusLabel(p).replace(' Stock','');return `<tr><td><input type="checkbox" ${exSel.has(p.id)?'checked':''} onchange="exSel[this.checked?'add':'delete']('${p.id}')"/></td><td style="font-family:monospace;font-size:12px;color:var(--accent)">${p.code}</td><td>${p.category}</td><td>${p.brand}</td><td>${p.variant||'—'}</td><td>${p.short_desc}</td><td style="font-weight:700">${p.qty}</td><td><span class="badge ${sc}">${sl}</span></td></tr>`;}).join('');
 }
 function toggleExAll(el){document.querySelectorAll('#exTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);if(el.checked)products.forEach(p=>exSel.add(p.id));else exSel.clear();}
 function buildExportFieldPicker(){
@@ -1686,6 +1774,7 @@ function notif(msg,type='i'){
 // MOVEMENT LOG STATE & DATA
 // ══════════════════════════════════════════════════════
 let _mvData=[];
+let _mvDataFiltered=[];
 let _mvDirActive=0;   // 0=inward, 1=outward
 let _mvSecActive=0;   // 0-5 section index
 let _smvProd=null, _smvOldQty=0, _smvNewQty=0, _smvReason=null;
@@ -1704,7 +1793,7 @@ async function loadMovementLog(){
   try{
     const{data,error}=await sb.from('movement_log').select('*').order('movement_date',{ascending:false}).limit(1000);
     if(error)throw error;
-    if(data)_mvData=data;
+    if(data){_mvData=data;_mvDataFiltered=[...data];}
   }catch(e){console.warn('movement_log load:',e.message);}
 }
 
@@ -1746,7 +1835,8 @@ function renderMvSec(idx){
   const cfg=MV_SEC_CFG[idx];
   const s=(gv('mvSrch'+idx)||'').toLowerCase();
   const sortKey=gv('mvSort'+idx)||'date_desc';
-  let rows=_mvData.filter(r=>cfg.types.includes(r.movement_type));
+  const src=(_mvDataFiltered&&_mvDataFiltered.length?_mvDataFiltered:_mvData);
+  let rows=src.filter(r=>cfg.types.includes(r.movement_type));
   if(s)rows=rows.filter(r=>((r.product_code||'')+(r.product_desc||'')+(r.customer_name||'')+(r.invoice_no||'')+(r.dc_no||'')+(r.waybill_no||'')+(r.rdc_no||'')+(r.doc_ref||'')+(r.remarks||'')).toLowerCase().includes(s));
   if(sortKey==='date_desc')rows=[...rows].sort((a,b)=>new Date(b.movement_date)-new Date(a.movement_date));
   else if(sortKey==='date_asc')rows=[...rows].sort((a,b)=>new Date(a.movement_date)-new Date(b.movement_date));
@@ -2101,6 +2191,65 @@ function getProductInwardHistory(productId){
 }
 
 // ══════════════════════════════════════════════════════
+// MOVEMENT LOG DATE FILTER
+// ══════════════════════════════════════════════════════
+let _mvDateFilter='all';
+let _mvDateFrom=null,_mvDateTo=null;
+
+function setMvDateFilter(mode){
+  _mvDateFilter=mode;
+  // Update button styles
+  ['all','month','quarter','year','finyear','custom'].forEach((m,i)=>{
+    const btn=g('mvdf'+i);
+    if(btn)btn.className='btn btn-'+(mode===m?'primary':'ghost')+' btn-xs';
+  });
+  const customEl=g('mvCustomDates');
+  if(customEl)customEl.style.display=mode==='custom'?'flex':'none';
+  if(mode!=='custom')applyMvDateFilter();
+}
+
+function applyMvDateFilter(){
+  const now=new Date();
+  const y=now.getFullYear(),m=now.getMonth();
+  let from=null,to=null;
+  const lbl=g('mvDateRangeLabel');
+  if(_mvDateFilter==='all'){_mvDateFrom=null;_mvDateTo=null;if(lbl)lbl.textContent='Showing all time';}
+  else if(_mvDateFilter==='month'){
+    from=new Date(y,m,1);to=new Date(y,m+1,0,23,59,59);
+    if(lbl)lbl.textContent=from.toLocaleString('en-IN',{month:'long',year:'numeric'});
+  } else if(_mvDateFilter==='quarter'){
+    const q=Math.floor(m/3);from=new Date(y,q*3,1);to=new Date(y,q*3+3,0,23,59,59);
+    if(lbl)lbl.textContent=`Q${q+1} ${y}`;
+  } else if(_mvDateFilter==='year'){
+    from=new Date(y,0,1);to=new Date(y,11,31,23,59,59);
+    if(lbl)lbl.textContent=`Year ${y}`;
+  } else if(_mvDateFilter==='finyear'){
+    // Apr-Mar
+    const fy=m>=3?y:y-1;
+    from=new Date(fy,3,1);to=new Date(fy+1,2,31,23,59,59);
+    if(lbl)lbl.textContent=`FY ${fy}-${String(fy+1).slice(2)}`;
+  } else if(_mvDateFilter==='custom'){
+    const fv=gv('mvDateFrom'),tv=gv('mvDateTo');
+    from=fv?new Date(fv):null;to=tv?new Date(tv+'T23:59:59'):null;
+    if(lbl)lbl.textContent=fv&&tv?`${fv} to ${tv}`:'Select dates';
+  }
+  _mvDateFrom=from;_mvDateTo=to;
+  if(from||to){
+    _mvDataFiltered=_mvData.filter(r=>{
+      const d=new Date(r.movement_date);
+      if(from&&d<from)return false;
+      if(to&&d>to)return false;
+      return true;
+    });
+  } else {
+    _mvDataFiltered=[..._mvData];
+  }
+  renderMvSec(_mvSecActive);
+}
+
+// _mvDataFiltered is set by applyMvDateFilter and used by renderMvSec
+
+// ══════════════════════════════════════════════════════
 // BULK UPLOAD
 // ══════════════════════════════════════════════════════
 let _bulkRows=[];
@@ -2127,6 +2276,7 @@ const BULK_COLS=[
   {key:'invoice_no',label:'Invoice Number',type:'text',required:false,example:'INV-2024-001'},
   {key:'invoice_date',label:'Invoice Date (YYYY-MM-DD)',type:'date',required:false,example:'2024-01-15'},
   {key:'dc_waybill',label:'DC / Waybill Number',type:'text',required:false,example:'DC-001'},
+  {key:'min_qty',label:'Min / Low Stock Alert Qty',type:'number',required:false,example:'5'},
 ];
 
 function downloadTemplate(){
@@ -2274,14 +2424,29 @@ async function confirmBulkUpload(){
       const{_rowNum,_hasError,...clean}=r;
       return{...clean,created_by:cu.name,entry_time:new Date().toISOString(),updated_at:new Date().toISOString()};
     });
-    // Supabase insert in batches of 50
+    // Supabase insert in batches of 50, capture IDs for movement log
     const batchSize=50;
     let inserted=0;
+    const mvBatch=[];
     for(let i=0;i<rows.length;i+=batchSize){
       const batch=rows.slice(i,i+batchSize);
-      const{error}=await sb.from('products').insert(batch);
+      const{data:bData,error}=await sb.from('products').insert(batch).select();
       if(error)throw error;
       inserted+=batch.length;
+      // Create stock_in movement for each inserted product
+      if(bData){bData.forEach((p,bi)=>{
+        const orig=batch[bi];
+        if(p.qty>0)mvBatch.push({product_id:p.id,product_code:p.code,product_desc:p.short_desc,
+          qty_change:p.qty,old_qty:0,new_qty:p.qty,movement_type:'stock_in',
+          movement_date:p.entry_time||new Date().toISOString(),
+          invoice_no:orig.invoice_no||null,invoice_date:orig.invoice_date||null,
+          waybill_no:orig.dc_waybill||null,dc_no:null,remarks:'Bulk upload initial stock',done_by:cu.name});
+      });}
+    }
+    if(mvBatch.length>0){
+      for(let i=0;i<mvBatch.length;i+=50){
+        await sb.from('movement_log').insert(mvBatch.slice(i,i+50));
+      }
     }
     await addLog('Bulk Upload',`${inserted} products`,`Bulk uploaded by ${cu.name}`,'',inserted);
     const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
