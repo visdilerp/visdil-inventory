@@ -162,6 +162,15 @@ input:checked+.tog-s:before{transform:translateX(16px);background:#fff}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+/* SORTABLE HEADERS */
+th.sortable{cursor:pointer;user-select:none;position:relative}
+th.sortable:hover{color:var(--text);background:var(--bg4)}
+th.sort-asc::after{content:' ↑';color:var(--accent)}
+th.sort-desc::after{content:' ↓';color:var(--accent)}
+th.col-drag{cursor:grab}
+th.col-drag:active{cursor:grabbing;opacity:.7}
+th.col-drop-left{border-left:2px solid var(--accent)}
+th.col-drop-right{border-right:2px solid var(--accent)}
 /* PRINT */
 @media print{.topbar,.nav,.tb,.btn,.overlay,.notif{display:none!important}body{background:#fff;color:#000}.tw{border:1px solid #ccc}th{background:#f0f0f0!important;color:#333!important}td{color:#333!important;border-color:#ddd!important}}
 /* RESPONSIVE */
@@ -573,6 +582,16 @@ let colState={
   stock:JSON.parse(JSON.stringify(COL_DEFS.stock)),
   pricing:JSON.parse(JSON.stringify(COL_DEFS.pricing)),
 };
+// ── SORT STATE ──────────────────────────────────────
+let _sort={
+  products:{col:null,dir:1},
+  stock:{col:null,dir:1},
+  statement:{col:null,dir:1}
+};
+
+// ── DRAG-REORDER STATE ───────────────────────────────
+let _drag={tab:null,fromIdx:null};
+
 const EF=[
   {key:'code',label:'Code',def:true},{key:'serial_number',label:'Serial No',def:true},
   {key:'category',label:'Category',def:true},{key:'brand',label:'Brand',def:true},
@@ -821,8 +840,23 @@ function renderProducts(){
   const s=gv('psrch').toLowerCase(),cat=gv('catF'),brand=gv('brandF');
   const cols=getVC('products');
   let fl=products.filter(p=>(!cat||p.category===cat)&&(!brand||p.brand===brand)&&(!s||(p.code+p.short_desc+p.brand+(p.variant||'')+(p.category||'')+(p.serial_number||'')).toLowerCase().includes(s)));
-  fl=srt(fl,gv('prodSort'));
-  g('prodThead').innerHTML='<tr>'+cols.map(c=>`<th style="min-width:${c.w||80}px">${c.label}</th>`).join('')+'</tr>';
+  // apply column sort (takes priority over dropdown)
+  if(_sort.products.col){
+    const key=_sort.products.col,dir=_sort.products.dir;
+    fl=[...fl].sort((a,b)=>{
+      let av=a[key]??'',bv=b[key]??'';
+      if(key==='qty')return dir*(a.qty-b.qty);
+      if(typeof av==='number')return dir*(av-bv);
+      return dir*String(av).localeCompare(String(bv));
+    });
+  }else fl=srt(fl,gv('prodSort'));
+  const ps=_sort.products;
+  g('prodThead').innerHTML='<tr>'+cols.map((c,ci)=>{
+    const skip=c.fixed||c.key==='img'||c.key==='sel'||c.key==='actions';
+    const sortCls=!skip&&ps.col===c.key?(ps.dir===1?'sort-asc':'sort-desc'):'';
+    const sortable=skip?'':'sortable';
+    return `<th style="min-width:${c.w||80}px" class="${sortable} ${sortCls} col-drag" data-col="${c.key}" data-ci="${ci}" draggable="${!skip}" onclick="thSort('products','${c.key}','${skip}')" ondragstart="thDragStart(event,'products',${ci})" ondragover="thDragOver(event,${ci})" ondrop="thDrop(event,'products',${ci})" ondragleave="thDragLeave(event)">${c.label}</th>`;
+  }).join('')+'</tr>';
   if(!fl.length){g('prodTbl').innerHTML=`<tr><td colspan="${cols.length}" style="text-align:center;padding:28px;color:var(--text3)">No products found</td></tr>`;return;}
   g('prodTbl').innerHTML=fl.map(p=>{
     const qb=p.qty===0?`<span class="badge br">Out</span>`:p.qty<10?`<span class="badge ba">Low(${p.qty})</span>`:`<span class="badge bg">${p.qty}</span>`;
@@ -941,8 +975,20 @@ function renderStock(){
   const ce=cu.canEdit||cu.can_edit||cu.role==='admin';
   const cols=getVC('stock');
   let fl=products.filter(p=>!s||(p.code+p.short_desc+p.category+(p.brand||'')).toLowerCase().includes(s));
-  fl=srt(fl,gv('stockSort'));
-  g('stockThead').innerHTML='<tr>'+cols.map(c=>`<th style="min-width:${c.w||80}px">${c.label}</th>`).join('')+'</tr>';
+  if(_sort.stock.col){
+    const key=_sort.stock.col,dir=_sort.stock.dir;
+    fl=[...fl].sort((a,b)=>{
+      if(key==='qty'||key==='status')return dir*(a.qty-b.qty);
+      let av=a[key]??'',bv=b[key]??'';
+      return dir*String(av).localeCompare(String(bv));
+    });
+  }else fl=srt(fl,gv('stockSort'));
+  const ss=_sort.stock;
+  g('stockThead').innerHTML='<tr>'+cols.map((c,ci)=>{
+    const skip=c.fixed||c.key==='update';
+    const sortCls=!skip&&ss.col===c.key?(ss.dir===1?'sort-asc':'sort-desc'):'';
+    return `<th style="min-width:${c.w||80}px" class="${skip?'':'sortable'} ${sortCls} col-drag" data-col="${c.key}" draggable="${!skip}" onclick="thSort('stock','${c.key}','${skip}')" ondragstart="thDragStart(event,'stock',${ci})" ondragover="thDragOver(event,${ci})" ondrop="thDrop(event,'stock',${ci})" ondragleave="thDragLeave(event)">${c.label}</th>`;
+  }).join('')+'</tr>';
   g('stockTbl').innerHTML=fl.map(p=>{
     const sc=p.qty===0?'br':p.qty<10?'ba':'bg',sl=p.qty===0?'Out of Stock':p.qty<10?'Low Stock':'In Stock';
     return '<tr>'+cols.map(c=>{
@@ -975,7 +1021,10 @@ function renderPricing(){
   const s=gv('prsrch').toLowerCase(),cols=getVC('pricing');
   let fl=products.filter(p=>!s||(p.code+p.short_desc+p.brand).toLowerCase().includes(s));
   fl=srt(fl,gv('pricingSort'));
-  g('pricingThead').innerHTML='<tr>'+cols.map(c=>`<th style="min-width:${c.w||80}px">${c.label}</th>`).join('')+'</tr>';
+  g('pricingThead').innerHTML='<tr>'+cols.map((c,ci)=>{
+    const skip=c.fixed||c.key==='actions';
+    return `<th style="min-width:${c.w||80}px" class="${skip?'':'sortable col-drag'}" draggable="${!skip}" onclick="thSort('pricing','${c.key}','${skip}')" ondragstart="thDragStart(event,'pricing',${ci})" ondragover="thDragOver(event,${ci})" ondrop="thDrop(event,'pricing',${ci})" ondragleave="thDragLeave(event)">${c.label}</th>`;
+  }).join('')+'</tr>';
   g('priceTbl').innerHTML=fl.map(p=>{
     const pr=_dbPricing[p.id]||{};
     const fv2=k=>pr[k]?`<span class="pv">₹${parseFloat(pr[k]).toFixed(2)}</span>`:`<span class="ph">—</span>`;
@@ -1016,6 +1065,12 @@ async function savePricing(){
 // ══════════════════════════════════════════════════════
 function popStmtFilters(){
   ['stmtCat','stmtBrand'].forEach(id=>{const el=g(id),v=el.value;const vals=[...new Set(products.map(p=>id==='stmtCat'?p.category:p.brand))].sort();el.innerHTML=(id==='stmtCat'?'<option value="">All Categories</option>':'<option value="">All Brands</option>')+vals.map(x=>`<option>${x}</option>`).join('');el.value=v;});
+  // hide price basis selector for users without pricing access
+  const basisEl=g('stmtBasis');
+  if(basisEl)basisEl.style.display=(cu?.role==='admin'||cu?.seePrice)?'':'none';
+  // hide export buttons if no pricing access
+  const stmtExBtns=document.querySelectorAll('#t-statement .btn-ghost');
+  stmtExBtns.forEach(b=>{if(b.textContent.includes('Excel')||b.textContent.includes('PDF'))b.style.display=(cu?.role==='admin'||cu?.seePrice||b.closest('.mft'))?'':'none';});
 }
 function buildStmtRows(src,basis){
   return src.map(p=>{const pr=_dbPricing[p.id];const up=pr?parseFloat(pr[basis]||0):0;return{...p,up,sv:up*p.qty,status:p.qty===0?'Out of Stock':p.qty<10?'Low Stock':'In Stock'};});
@@ -1032,10 +1087,24 @@ function renderStatement(){
   });
   const rows=buildStmtRows(fl,basis);
   const tq=rows.reduce((s,r)=>s+r.qty,0),tv=rows.reduce((s,r)=>s+r.sv,0),wp=rows.filter(r=>r.up>0).length;
-  g('stmtSummary').innerHTML=`<div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${tq}</div></div><div class="stmt-card"><div class="stmt-card-label">Priced</div><div class="stmt-card-val" style="color:var(--green)">${wp}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Value (${PL[basis]})</div><div class="stmt-card-val" style="color:var(--accent)">${fmt(tv)}</div></div>`;
-  g('stmtThead').innerHTML=`<tr><th><input type="checkbox" onchange="toggleStmtSel(this)"/></th><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price (${PL[basis]})</th><th>Stock Value</th></tr>`;
-  g('stmtTbl').innerHTML=rows.map(r=>{const sc=r.qty===0?'br':r.qty<10?'ba':'bg';return `<tr><td><input type="checkbox" ${stmtSel.has(r.id)?'checked':''} onchange="stmtSel[this.checked?'add':'delete']('${r.id}')"/></td><td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||'—'}</td><td><strong>${r.short_desc}</strong></td><td style="font-weight:700">${r.qty}</td><td><span class="badge ${sc}">${r.status}</span></td><td class="pv">${r.up>0?fmt(r.up):'<span class="ph">—</span>'}</td><td style="font-weight:700;color:var(--accent)">${r.up>0?fmt(r.sv):'—'}</td></tr>`;}).join('');
-  g('stmtFoot').innerHTML=`<tr style="background:var(--bg3)"><td></td><td colspan="5" style="font-weight:700;padding:9px 10px">TOTAL (${rows.length} products)</td><td style="font-weight:700">${tq}</td><td></td><td></td><td style="font-weight:700;font-size:15px;color:var(--accent)">${fmt(tv)}</td></tr>`;
+  const _sp=cu?.role==='admin'||cu?.seePrice;
+  g('stmtSummary').innerHTML=`<div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${tq}</div></div>${_sp?`<div class="stmt-card"><div class="stmt-card-label">Priced</div><div class="stmt-card-val" style="color:var(--green)">${wp}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Value (${PL[basis]})</div><div class="stmt-card-val" style="color:var(--accent)">${fmt(tv)}</div></div>`:'<div class="stmt-card"><div class="stmt-card-label">Note</div><div class="stmt-card-val" style="font-size:13px;color:var(--text2)">No pricing access</div></div>'}`;
+  const showPrice=cu?.role==='admin'||cu?.seePrice;
+  const stmtCols=[
+    {key:'code',label:'Code'},{key:'category',label:'Category'},{key:'brand',label:'Brand'},
+    {key:'variant',label:'Variant'},{key:'short_desc',label:'Product'},{key:'qty',label:'Qty'},
+    {key:'status',label:'Status'},
+    ...(showPrice?[{key:'up',label:`Unit Price (${PL[basis]})`},{key:'sv',label:'Stock Value'}]:[])
+  ];
+  const sm=_sort.statement;
+  g('stmtThead').innerHTML=`<tr><th><input type="checkbox" onchange="toggleStmtSel(this)"/></th>`+stmtCols.map((c,ci)=>{
+    const sortCls=sm.col===c.key?(sm.dir===1?'sort-asc':'sort-desc'):'';
+    return `<th class="sortable ${sortCls} col-drag" draggable="true" onclick="thSort('statement','${c.key}','false')" ondragstart="thDragStart(event,'statement',${ci})" ondragover="thDragOver(event,${ci})" ondrop="thDrop(event,'statement',${ci})" ondragleave="thDragLeave(event)">${c.label}</th>`;
+  }).join('')+`</tr>`;
+  // apply statement sort
+  if(sm.col){const dir=sm.dir;rows=[...rows].sort((a,b)=>{const av=a[sm.col]??0,bv=b[sm.col]??0;if(typeof av==='number')return dir*(av-bv);return dir*String(av).localeCompare(String(bv));});}
+  g('stmtTbl').innerHTML=rows.map(r=>{const sc=r.qty===0?'br':r.qty<10?'ba':'bg';return `<tr><td><input type="checkbox" ${stmtSel.has(r.id)?'checked':''} onchange="stmtSel[this.checked?'add':'delete']('${r.id}')"/></td>`+stmtCols.map(c=>{if(c.key==='code')return `<td style="font-family:monospace;font-size:12px;color:var(--accent)">${r.code}</td>`;if(c.key==='short_desc')return `<td><strong>${r.short_desc}</strong></td>`;if(c.key==='qty')return `<td style="font-weight:700">${r.qty}</td>`;if(c.key==='status')return `<td><span class="badge ${sc}">${r.status}</span></td>`;if(c.key==='up')return `<td class="pv">${r.up>0?fmt(r.up):'<span class="ph">—</span>'}</td>`;if(c.key==='sv')return `<td style="font-weight:700;color:var(--accent)">${r.up>0?fmt(r.sv):'—'}</td>`;return `<td>${r[c.key]||'—'}</td>`;}).join('')+`</tr>`;}).join('');
+  g('stmtFoot').innerHTML=`<tr style="background:var(--bg3)"><td></td><td colspan="${stmtCols.length-1}" style="font-weight:700;padding:9px 10px">TOTAL (${rows.length} products)</td><td style="font-weight:700">${tq}</td>${showPrice?`<td></td><td style="font-weight:700;font-size:15px;color:var(--accent)">${fmt(tv)}</td>`:''}</tr>`;
 }
 function toggleStmtSel(el){document.querySelectorAll('#stmtTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);const fl=products.filter(p=>{const cat=gv('stmtCat'),brand=gv('stmtBrand');return(!cat||p.category===cat)&&(!brand||p.brand===brand);});if(el.checked)fl.forEach(p=>stmtSel.add(p.id));else stmtSel.clear();}
 function getStmtRows(){const basis=gv('stmtBasis')||'landed';const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();const src=products.filter(p=>{if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;if(status==='in'&&p.qty<10)return false;if(status==='low'&&(p.qty===0||p.qty>=10))return false;if(status==='out'&&p.qty!==0)return false;if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;return true;});return{rows:buildStmtRows(stmtSel.size?src.filter(p=>stmtSel.has(p.id)):src,basis),basis};}
@@ -1244,6 +1313,64 @@ function printPage(title,body){
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Visdil — ${title}</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0;padding:0}.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e3a8a;padding-bottom:7px;margin-bottom:9px}.hdr h2{font-size:13px;color:#1e3a8a;margin:0 0 2px}.hdr p{color:#666;font-size:8px;margin:0}table{border-collapse:collapse;width:100%;margin-bottom:7px}th{background:#1e3a8a;color:#fff;padding:5px 6px;text-align:left;font-size:8px;font-weight:600}td{padding:4px 6px;border-bottom:1px solid #e5e7eb;font-size:8px;word-wrap:break-word;vertical-align:top}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#e0e7ff;font-weight:700}.sum{padding:6px 9px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:8px;font-weight:600}</style></head><body><div class="hdr"><div><h2>📦 Visdil Inventory — ${title}</h2><p>Generated: ${new Date().toLocaleString()} · By: ${cu?.name}</p></div><div style="text-align:right;font-size:8px;color:#444">Total Products: ${products.length}</div></div>${body}</body></html>`);
   w.document.close();setTimeout(()=>w.print(),500);
+}
+
+// ══════════════════════════════════════════════════════
+// SORTABLE + DRAGGABLE COLUMN HEADERS
+// ══════════════════════════════════════════════════════
+function thSort(tab,col,skip){
+  if(skip==='true'||skip===true)return;
+  if(_sort[tab]&&_sort[tab].col===col){
+    _sort[tab].dir*=-1;
+  }else{
+    if(!_sort[tab])_sort[tab]={};
+    _sort[tab].col=col;_sort[tab].dir=1;
+  }
+  if(tab==='products')renderProducts();
+  else if(tab==='stock')renderStock();
+  else if(tab==='statement')renderStatement();
+}
+
+function thDragStart(e,tab,ci){
+  _drag.tab=tab;_drag.fromIdx=ci;
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',ci);
+  e.currentTarget.style.opacity='0.5';
+}
+function thDragOver(e,ci){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('th.col-drop-left,th.col-drop-right').forEach(el=>{el.classList.remove('col-drop-left','col-drop-right');});
+  e.currentTarget.classList.add(_drag.fromIdx<ci?'col-drop-right':'col-drop-left');
+}
+function thDragLeave(e){
+  e.currentTarget.classList.remove('col-drop-left','col-drop-right');
+}
+function thDrop(e,tab,toIdx){
+  e.preventDefault();
+  document.querySelectorAll('th.col-drop-left,th.col-drop-right').forEach(el=>{el.classList.remove('col-drop-left','col-drop-right');});
+  e.currentTarget.style.opacity='';
+  const fromIdx=_drag.fromIdx;
+  if(fromIdx===null||fromIdx===toIdx||tab!==_drag.tab)return;
+  // reorder colState for products/stock/pricing
+  const cols=colState[tab];
+  if(cols){
+    // find non-fixed cols and reorder
+    const movable=cols.filter(c=>!c.fixed);
+    const fixed=cols.filter(c=>c.fixed);
+    const fi=movable[fromIdx],ti=movable[toIdx];
+    if(!fi||!ti){_drag={tab:null,fromIdx:null};return;}
+    movable.splice(fromIdx,1);movable.splice(toIdx,0,fi);
+    // rebuild colState preserving fixed positions
+    colState[tab]=[...cols.filter(c=>c.fixed&&cols.indexOf(c)<2),...movable,...cols.filter(c=>c.fixed&&cols.indexOf(c)>=cols.length-1)];
+    // simpler: just merge fixed+movable in original order with replacements
+    let mi=0;
+    colState[tab]=cols.map(c=>c.fixed?c:movable[mi++]);
+  }
+  _drag={tab:null,fromIdx:null};
+  if(tab==='products')renderProducts();
+  else if(tab==='stock')renderStock();
+  else if(tab==='statement')renderStatement();
+  else if(tab==='pricing')renderPricing();
 }
 
 // ══════════════════════════════════════════════════════
