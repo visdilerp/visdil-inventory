@@ -804,12 +804,12 @@ function renderDash(){
   const isAdminU=cu?.role==='admin';
   const hp=hasPricingAccess();
   const logSource=isAdminU?_dbLog:_dbLog.filter(a=>a.done_by===cu?.name);
-  const actTitle=g('actTitle');const exportLogBtn=g('exportLogBtn');
-  if(actTitle)actTitle.textContent=isAdminU?'Recent Activity (All Users)':'My Recent Activity';
-  if(exportLogBtn)exportLogBtn.style.display=isAdminU?'':'none';
-  const actThead=g('actThead');
-  if(actThead){
-    actThead.innerHTML=hp
+  const _actTitle=g('actTitle');const _exportLogBtn=g('exportLogBtn');
+  if(_actTitle)_actTitle.textContent=isAdminU?'Recent Activity (All Users)':'My Recent Activity';
+  if(_exportLogBtn)_exportLogBtn.style.display=isAdminU?'':'none';
+  const _actThead=g('actThead');
+  if(_actThead){
+    _actThead.innerHTML=hp
       ?'<tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old</th><th>New</th><th>By</th></tr>'
       :'<tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>By</th></tr>';
   }
