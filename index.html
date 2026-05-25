@@ -250,7 +250,7 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         </div>
       </div>
       <div class="sh"><div class="stt" id="actTitle">Recent Activity</div><button id="exportLogBtn" class="btn btn-ghost btn-sm" onclick="exportChangelogExcel()">⬇ Export Log</button></div>
-      <div class="tw"><table><thead><tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old</th><th>New</th><th>By</th></tr></thead><tbody id="actTbl"></tbody></table></div>
+      <div class="tw"><table><thead id="actThead"><tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old</th><th>New</th><th>By</th></tr></thead><tbody id="actTbl"></tbody></table></div>
     </div>
 
     <!-- PRODUCTS -->
@@ -329,7 +329,7 @@ th.col-drop-right{border-right:2px solid var(--accent)}
           <input class="srch" id="clsrch" placeholder="Search..." oninput="renderChangelog()" />
           <select class="flt" id="clFilter" onchange="renderChangelog()"><option value="">All Actions</option><option value="Stock Updated">Stock Updated</option><option value="Product Added">Product Added</option><option value="Product Updated">Product Updated</option><option value="Product Deleted">Product Deleted</option><option value="Price Set">Price Set</option><option value="Product Cloned">Product Cloned</option></select>
         </div>
-        <div class="ts"><table><thead><tr><th>Date</th><th>Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old Value</th><th>New Value</th><th>By</th></tr></thead><tbody id="clTbl"></tbody></table></div>
+        <div class="ts"><table><thead id="clThead"><tr><th>Date</th><th>Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old Value</th><th>New Value</th><th>By</th></tr></thead><tbody id="clTbl"></tbody></table></div>
       </div>
     </div>
 
@@ -765,6 +765,26 @@ function popAllFilters(){popFilters();popStmtFilters();popExFilters();}
 function fmt(n){return '₹'+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function calcVal(basis){return products.reduce((s,p)=>{const pr=_dbPricing[p.id];return s+(pr?parseFloat(pr[basis]||0)*p.qty:0);},0);}
 
+// ══════════════════════════════════════════════════════
+// LOG ROW SANITISER — strips price data for non-pricing users
+// ══════════════════════════════════════════════════════
+function sanitiseLog(entry, userHasPricing){
+  if(userHasPricing) return entry; // full visibility
+  const priceActions=['Price Set'];
+  const isPriceEntry=priceActions.includes(entry.action);
+  if(!isPriceEntry) return entry; // not a price action, show as-is
+  // hide price values
+  return {
+    ...entry,
+    details:'(pricing updated)',
+    old_value:'—',
+    new_value:'—'
+  };
+}
+
+function canSeeLogs(){ return !!(cu?.role==='admin'); }
+function hasPricingAccess(){ return !!(cu?.role==='admin'||cu?.seePrice||cu?.see_price); }
+
 function renderDash(){
   g('s1').textContent=products.length;
   g('s2').textContent=products.reduce((s,p)=>s+p.qty,0);
@@ -780,24 +800,24 @@ function renderDash(){
     g('dv_landed').textContent=fmt(calcVal('landed'));g('dv_list').textContent=fmt(calcVal('list_price'));
     g('dv_bsp').textContent=fmt(calcVal('bsp'));g('dv_dealer').textContent=fmt(calcVal('dealer_price'));g('dv_mrp').textContent=fmt(calcVal('end_user_price'));
   }
-  if(cu?.role==='admin'){
-    g('actTbl').innerHTML=_dbLog.slice(0,15).map(a=>{
-      const dt=new Date(a.created_at);
-      return `<tr><td style="color:var(--text2);font-size:11px;white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product_name||'—'}</td><td style="color:var(--text2);font-size:12px">${a.details||''}</td><td style="color:var(--red);font-size:12px">${a.old_value||''}</td><td style="color:var(--green);font-size:12px">${a.new_value||''}</td><td style="color:var(--text2)">${a.done_by||''}</td></tr>`;
-    }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
-  } else {
-    // Non-admin: show only their own activity, hide price values unless they have pricing access
-    const hasPricingDash=!!(cu?.seePrice||cu?.see_price);
-    const myLog=_dbLog.filter(a=>a.done_by===cu.name).slice(0,15);
-    g('actTbl').innerHTML=myLog.map(a=>{
-      const dt=new Date(a.created_at);
-      const isPriceAction=a.action==='Price Set';
-      const oldVal=(isPriceAction&&!hasPricingDash)?'—':a.old_value||'';
-      const newVal=(isPriceAction&&!hasPricingDash)?'—':a.new_value||'';
-      const details=(isPriceAction&&!hasPricingDash)?'(price updated)':a.details||'';
-      return `<tr><td style="color:var(--text2);font-size:11px;white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product_name||'—'}</td><td style="color:var(--text2);font-size:12px">${details}</td><td style="color:var(--red);font-size:12px">${oldVal}</td><td style="color:var(--green);font-size:12px">${newVal}</td><td style="color:var(--text2)">${a.done_by||''}</td></tr>`;
-    }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
+  // Admin sees all entries; others see only their own
+  const isAdminU=cu?.role==='admin';
+  const hp=hasPricingAccess();
+  const logSource=isAdminU?_dbLog:_dbLog.filter(a=>a.done_by===cu?.name);
+  const actTitle=g('actTitle');const exportLogBtn=g('exportLogBtn');
+  if(actTitle)actTitle.textContent=isAdminU?'Recent Activity (All Users)':'My Recent Activity';
+  if(exportLogBtn)exportLogBtn.style.display=isAdminU?'':'none';
+  const actThead=g('actThead');
+  if(actThead){
+    actThead.innerHTML=hp
+      ?'<tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old</th><th>New</th><th>By</th></tr>'
+      :'<tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>By</th></tr>';
   }
+  g('actTbl').innerHTML=logSource.slice(0,15).map(a=>{
+    const e=sanitiseLog(a,hp);
+    const dt=new Date(e.created_at);
+    return `<tr><td style="color:var(--text2);font-size:11px;white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td><span class="log-badge">${e.action}</span></td><td>${e.product_name||'—'}</td><td style="color:var(--text2);font-size:12px">${e.details||''}</td>${hp?`<td style="color:var(--red);font-size:12px">${e.old_value||''}</td><td style="color:var(--green);font-size:12px">${e.new_value||''}</td>`:''}<td style="color:var(--text2)">${e.done_by||''}</td></tr>`;
+  }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
 }
 
 // ══════════════════════════════════════════════════════
@@ -1151,41 +1171,34 @@ function exportStmtRowsPDF(rows,basis,scope){
 function renderChangelog(){
   const s=gv('clsrch').toLowerCase(),f=gv('clFilter');
   const isAdmin=cu?.role==='admin';
-  const hasPricing=isAdmin||!!(cu?.seePrice||cu?.see_price);
-  // non-admin sees only their own log entries
-  const base=isAdmin?_dbLog:_dbLog.filter(l=>l.done_by===cu.name);
+  const hp=hasPricingAccess();
+  const base=isAdmin?_dbLog:_dbLog.filter(l=>l.done_by===cu?.name);
   const fl=base.filter(l=>(!f||l.action===f)&&(!s||(l.product_name+l.details+l.done_by+l.action).toLowerCase().includes(s)));
-  const clTitle=g('clTitle');
-  const clExportBtn=g('clExportBtn');
+  const clTitle=g('clTitle');const clExportBtn=g('clExportBtn');
   if(clTitle)clTitle.textContent=isAdmin?'Inventory Change Log (All Users)':'My Activity Log';
   if(clExportBtn)clExportBtn.style.display=isAdmin?'':'none';
+  // show/hide Old Value and New Value columns based on pricing access
+  const clThead=g('clThead');
+  if(clThead){
+    clThead.innerHTML=hp
+      ?'<tr><th>Date</th><th>Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old Value</th><th>New Value</th><th>By</th></tr>'
+      :'<tr><th>Date</th><th>Time</th><th>Action</th><th>Product</th><th>Details</th><th>By</th></tr>';
+  }
   g('clTbl').innerHTML=fl.length?fl.map(l=>{
-    const dt=new Date(l.created_at);
-    const isPriceAction=l.action==='Price Set';
-    // hide price values if user has no pricing access
-    const oldVal=(isPriceAction&&!hasPricing)?'—':l.old_value||'';
-    const newVal=(isPriceAction&&!hasPricing)?'—':l.new_value||'';
-    const details=(isPriceAction&&!hasPricing)?'(price updated)':l.details||'';
-    return `<tr><td style="font-size:11px;color:var(--text2)">${dt.toLocaleDateString('en-IN')}</td><td style="font-size:11px;color:var(--text2)">${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td><td><span class="log-badge">${l.action}</span></td><td style="font-size:12px">${l.product_name||''}</td><td style="font-size:12px;color:var(--text2)">${details}</td><td style="font-size:12px;color:var(--red)">${oldVal}</td><td style="font-size:12px;color:var(--green)">${newVal}</td><td style="font-size:12px;color:var(--text2)">${l.done_by||''}</td></tr>`;
+    const e=sanitiseLog(l,hp);
+    const dt=new Date(e.created_at);
+    return `<tr><td style="font-size:11px;color:var(--text2)">${dt.toLocaleDateString('en-IN')}</td><td style="font-size:11px;color:var(--text2)">${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td><td><span class="log-badge">${e.action}</span></td><td style="font-size:12px">${e.product_name||''}</td><td style="font-size:12px;color:var(--text2)">${e.details||''}</td>${hp?`<td style="font-size:12px;color:var(--red)">${e.old_value||''}</td><td style="font-size:12px;color:var(--green)">${e.new_value||''}</td>`:''}<td style="font-size:12px;color:var(--text2)">${e.done_by||''}</td></tr>`;
   }).join(''):'<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">No log entries yet</td></tr>';
 }
 function exportChangelogExcel(){
   const isAdmin=cu?.role==='admin';
-  const hasPricing=isAdmin||!!(cu?.seePrice||cu?.see_price);
-  const base=isAdmin?_dbLog:_dbLog.filter(l=>l.done_by===cu.name);
+  const hp=hasPricingAccess();
+  const base=isAdmin?_dbLog:_dbLog.filter(l=>l.done_by===cu?.name);
   const h=['Date','Time','Action','Product','Details','Old Value','New Value','By'];
   const d=[h,...base.map(l=>{
-    const dt=new Date(l.created_at);
-    const isPriceAction=l.action==='Price Set';
-    return[
-      dt.toLocaleDateString('en-IN'),
-      dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      l.action,l.product_name||'',
-      (isPriceAction&&!hasPricing)?'(price updated)':l.details||'',
-      (isPriceAction&&!hasPricing)?'—':l.old_value||'',
-      (isPriceAction&&!hasPricing)?'—':l.new_value||'',
-      l.done_by||''
-    ];
+    const e=sanitiseLog(l,hp);
+    const dt=new Date(e.created_at);
+    return[dt.toLocaleDateString('en-IN'),dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),e.action,e.product_name||'',e.details||'',e.old_value||'',e.new_value||'',e.done_by||''];
   })];
   const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=h.map(()=>({wch:18}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Change Log');
