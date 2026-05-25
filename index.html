@@ -249,7 +249,7 @@ th.col-drop-right{border-right:2px solid var(--accent)}
           <div class="val-card" onclick="openStmtModal('end_user_price')"><div class="val-card-label">MRP / End User</div><div class="val-card-amount" id="dv_mrp">₹0.00</div><div class="val-card-sub">MRP × qty</div></div>
         </div>
       </div>
-      <div class="sh"><div class="stt">Recent Activity</div><button class="btn btn-ghost btn-sm" onclick="exportChangelogExcel()">⬇ Export Log</button></div>
+      <div class="sh"><div class="stt" id="actTitle">Recent Activity</div><button id="exportLogBtn" class="btn btn-ghost btn-sm" onclick="exportChangelogExcel()">⬇ Export Log</button></div>
       <div class="tw"><table><thead><tr><th>Date/Time</th><th>Action</th><th>Product</th><th>Details</th><th>Old</th><th>New</th><th>By</th></tr></thead><tbody id="actTbl"></tbody></table></div>
     </div>
 
@@ -323,7 +323,7 @@ th.col-drop-right{border-right:2px solid var(--accent)}
 
     <!-- CHANGELOG -->
     <div class="tab" id="t-changelog">
-      <div class="sh"><div class="stt">Inventory Change Log</div><button class="btn btn-ghost btn-sm" onclick="exportChangelogExcel()">⬇ Export</button></div>
+      <div class="sh"><div class="stt" id="clTitle">Inventory Change Log</div><button id="clExportBtn" class="btn btn-ghost btn-sm" onclick="exportChangelogExcel()">⬇ Export</button></div>
       <div class="tw">
         <div class="tb">
           <input class="srch" id="clsrch" placeholder="Search..." oninput="renderChangelog()" />
@@ -771,14 +771,33 @@ function renderDash(){
   g('s3').textContent=products.filter(p=>p.qty>=10).length;
   g('s4').textContent=products.filter(p=>p.qty>0&&p.qty<10).length;
   g('s5').textContent=products.filter(p=>p.qty===0).length;
+  // update activity section title based on role
+  const actTitle=g('actTitle');
+  const exportLogBtn=g('exportLogBtn');
+  if(actTitle)actTitle.textContent=cu?.role==='admin'?'Recent Activity (All Users)':'My Recent Activity';
+  if(exportLogBtn)exportLogBtn.style.display=cu?.role==='admin'?'':'none';
   if(cu?.seePrice||cu?.see_price||cu?.role==='admin'){
     g('dv_landed').textContent=fmt(calcVal('landed'));g('dv_list').textContent=fmt(calcVal('list_price'));
     g('dv_bsp').textContent=fmt(calcVal('bsp'));g('dv_dealer').textContent=fmt(calcVal('dealer_price'));g('dv_mrp').textContent=fmt(calcVal('end_user_price'));
   }
-  g('actTbl').innerHTML=_dbLog.slice(0,15).map(a=>{
-    const dt=new Date(a.created_at);
-    return `<tr><td style="color:var(--text2);font-size:11px;white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product_name||'—'}</td><td style="color:var(--text2);font-size:12px">${a.details||''}</td><td style="color:var(--red);font-size:12px">${a.old_value||''}</td><td style="color:var(--green);font-size:12px">${a.new_value||''}</td><td style="color:var(--text2)">${a.done_by||''}</td></tr>`;
-  }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
+  if(cu?.role==='admin'){
+    g('actTbl').innerHTML=_dbLog.slice(0,15).map(a=>{
+      const dt=new Date(a.created_at);
+      return `<tr><td style="color:var(--text2);font-size:11px;white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product_name||'—'}</td><td style="color:var(--text2);font-size:12px">${a.details||''}</td><td style="color:var(--red);font-size:12px">${a.old_value||''}</td><td style="color:var(--green);font-size:12px">${a.new_value||''}</td><td style="color:var(--text2)">${a.done_by||''}</td></tr>`;
+    }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
+  } else {
+    // Non-admin: show only their own activity, hide price values unless they have pricing access
+    const hasPricingDash=!!(cu?.seePrice||cu?.see_price);
+    const myLog=_dbLog.filter(a=>a.done_by===cu.name).slice(0,15);
+    g('actTbl').innerHTML=myLog.map(a=>{
+      const dt=new Date(a.created_at);
+      const isPriceAction=a.action==='Price Set';
+      const oldVal=(isPriceAction&&!hasPricingDash)?'—':a.old_value||'';
+      const newVal=(isPriceAction&&!hasPricingDash)?'—':a.new_value||'';
+      const details=(isPriceAction&&!hasPricingDash)?'(price updated)':a.details||'';
+      return `<tr><td style="color:var(--text2);font-size:11px;white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td><span class="log-badge">${a.action}</span></td><td>${a.product_name||'—'}</td><td style="color:var(--text2);font-size:12px">${details}</td><td style="color:var(--red);font-size:12px">${oldVal}</td><td style="color:var(--green);font-size:12px">${newVal}</td><td style="color:var(--text2)">${a.done_by||''}</td></tr>`;
+    }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No activity yet</td></tr>';
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -1131,15 +1150,43 @@ function exportStmtRowsPDF(rows,basis,scope){
 // ══════════════════════════════════════════════════════
 function renderChangelog(){
   const s=gv('clsrch').toLowerCase(),f=gv('clFilter');
-  const fl=_dbLog.filter(l=>(!f||l.action===f)&&(!s||(l.product_name+l.details+l.done_by+l.action).toLowerCase().includes(s)));
+  const isAdmin=cu?.role==='admin';
+  const hasPricing=isAdmin||!!(cu?.seePrice||cu?.see_price);
+  // non-admin sees only their own log entries
+  const base=isAdmin?_dbLog:_dbLog.filter(l=>l.done_by===cu.name);
+  const fl=base.filter(l=>(!f||l.action===f)&&(!s||(l.product_name+l.details+l.done_by+l.action).toLowerCase().includes(s)));
+  const clTitle=g('clTitle');
+  const clExportBtn=g('clExportBtn');
+  if(clTitle)clTitle.textContent=isAdmin?'Inventory Change Log (All Users)':'My Activity Log';
+  if(clExportBtn)clExportBtn.style.display=isAdmin?'':'none';
   g('clTbl').innerHTML=fl.length?fl.map(l=>{
     const dt=new Date(l.created_at);
-    return `<tr><td style="font-size:11px;color:var(--text2)">${dt.toLocaleDateString('en-IN')}</td><td style="font-size:11px;color:var(--text2)">${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td><td><span class="log-badge">${l.action}</span></td><td style="font-size:12px">${l.product_name||''}</td><td style="font-size:12px;color:var(--text2)">${l.details||''}</td><td style="font-size:12px;color:var(--red)">${l.old_value||''}</td><td style="font-size:12px;color:var(--green)">${l.new_value||''}</td><td style="font-size:12px;color:var(--text2)">${l.done_by||''}</td></tr>`;
+    const isPriceAction=l.action==='Price Set';
+    // hide price values if user has no pricing access
+    const oldVal=(isPriceAction&&!hasPricing)?'—':l.old_value||'';
+    const newVal=(isPriceAction&&!hasPricing)?'—':l.new_value||'';
+    const details=(isPriceAction&&!hasPricing)?'(price updated)':l.details||'';
+    return `<tr><td style="font-size:11px;color:var(--text2)">${dt.toLocaleDateString('en-IN')}</td><td style="font-size:11px;color:var(--text2)">${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td><td><span class="log-badge">${l.action}</span></td><td style="font-size:12px">${l.product_name||''}</td><td style="font-size:12px;color:var(--text2)">${details}</td><td style="font-size:12px;color:var(--red)">${oldVal}</td><td style="font-size:12px;color:var(--green)">${newVal}</td><td style="font-size:12px;color:var(--text2)">${l.done_by||''}</td></tr>`;
   }).join(''):'<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">No log entries yet</td></tr>';
 }
 function exportChangelogExcel(){
+  const isAdmin=cu?.role==='admin';
+  const hasPricing=isAdmin||!!(cu?.seePrice||cu?.see_price);
+  const base=isAdmin?_dbLog:_dbLog.filter(l=>l.done_by===cu.name);
   const h=['Date','Time','Action','Product','Details','Old Value','New Value','By'];
-  const d=[h,..._dbLog.map(l=>{const dt=new Date(l.created_at);return[dt.toLocaleDateString('en-IN'),dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),l.action,l.product_name||'',l.details||'',l.old_value||'',l.new_value||'',l.done_by||''];})];
+  const d=[h,...base.map(l=>{
+    const dt=new Date(l.created_at);
+    const isPriceAction=l.action==='Price Set';
+    return[
+      dt.toLocaleDateString('en-IN'),
+      dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      l.action,l.product_name||'',
+      (isPriceAction&&!hasPricing)?'(price updated)':l.details||'',
+      (isPriceAction&&!hasPricing)?'—':l.old_value||'',
+      (isPriceAction&&!hasPricing)?'—':l.new_value||'',
+      l.done_by||''
+    ];
+  })];
   const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=h.map(()=>({wch:18}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Change Log');
   XLSX.writeFile(wb,`Visdil_ChangeLog_${yyyymmdd()}.xlsx`);notif('Exported!','s');
