@@ -227,6 +227,8 @@ th.col-drop-right{border-right:2px solid var(--accent)}
     <div class="ni" onclick="showTab('changelog')">📝 Change Log</div>
     <div class="ni admin-only" style="display:none" onclick="showTab('users')">👥 Users</div>
     <div class="ni" onclick="showTab('export')">⬇️ Export</div>
+    <div class="ni" id="navMovement" onclick="showTab('movement')">📤 Movement Log</div>
+    <div class="ni" id="navBulkUpload" onclick="showTab('bulkupload')">📥 Bulk Upload</div>
   </div>
   <div class="main">
 
@@ -373,6 +375,105 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         <div class="ts"><table><thead><tr><th></th><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Short Desc</th><th>Qty</th><th>Status</th></tr></thead><tbody id="exTbl"></tbody></table></div>
       </div>
     </div>
+
+    <!-- MOVEMENT LOG TAB -->
+    <div class="tab" id="t-movement">
+      <div class="sh"><div class="stt">Stock Movement & Sales Log</div></div>
+      <!-- Section selector -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="mvSecBtn0" onclick="showMvSec(0)">📦 Sales</button>
+        <button class="btn btn-ghost btn-sm" id="mvSecBtn1" onclick="showMvSec(1)">🔄 Test & Return</button>
+        <button class="btn btn-ghost btn-sm" id="mvSecBtn2" onclick="showMvSec(2)">📋 Others</button>
+      </div>
+      <!-- SALES SECTION -->
+      <div id="mvSec0">
+        <div class="sh">
+          <div class="stt" style="font-size:13px;color:var(--accent)">📦 Sales Log</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(0)">⬇ Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(0)">📄 PDF</button>
+          </div>
+        </div>
+        <div class="tw">
+          <div class="tb">
+            <input class="srch" id="mvSrch0" placeholder="Search..." oninput="renderMv(0)"/>
+            <select class="flt" id="mvSort0" onchange="renderMv(0)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <div class="ts"><table><thead id="mvThead0"><tr><th>Date</th><th>Product Code</th><th>Description</th><th>Qty</th><th>Invoice No</th><th>Invoice Date</th><th>Waybill No</th><th>DC No</th><th>Customer</th><th>Remarks</th></tr></thead><tbody id="mvTbl0"></tbody></table></div>
+        </div>
+      </div>
+      <!-- TEST & RETURN SECTION -->
+      <div id="mvSec1" style="display:none">
+        <div class="sh">
+          <div class="stt" style="font-size:13px;color:var(--amber)">🔄 Test & Return Log</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(1)">⬇ Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(1)">📄 PDF</button>
+          </div>
+        </div>
+        <div class="tw">
+          <div class="tb">
+            <input class="srch" id="mvSrch1" placeholder="Search..." oninput="renderMv(1)"/>
+            <select class="flt" id="mvSort1" onchange="renderMv(1)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <div class="ts"><table><thead id="mvThead1"><tr><th>Date</th><th>Product Code</th><th>Description</th><th>Qty</th><th>RDC No</th><th>Waybill No</th><th>DC No</th><th>Customer</th><th>Expected Return</th><th>Remarks</th></tr></thead><tbody id="mvTbl1"></tbody></table></div>
+        </div>
+      </div>
+      <!-- OTHERS SECTION -->
+      <div id="mvSec2" style="display:none">
+        <div class="sh">
+          <div class="stt" style="font-size:13px;color:var(--purple)">📋 Others Log</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(2)">⬇ Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(2)">📄 PDF</button>
+          </div>
+        </div>
+        <div class="tw">
+          <div class="tb">
+            <input class="srch" id="mvSrch2" placeholder="Search..." oninput="renderMv(2)"/>
+            <select class="flt" id="mvSort2" onchange="renderMv(2)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <div class="ts"><table><thead id="mvThead2"><tr><th>Date</th><th>Product Code</th><th>Description</th><th>Qty</th><th>Doc Reference</th><th>Waybill No</th><th>DC No</th><th>Customer</th><th>Expected Return</th><th>Remarks</th></tr></thead><tbody id="mvTbl2"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BULK UPLOAD TAB -->
+    <div class="tab" id="t-bulkupload">
+      <div class="sh">
+        <div class="stt">Bulk Product Upload</div>
+        <button class="btn btn-success btn-sm" onclick="downloadTemplate()">⬇ Download Template</button>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600;margin-bottom:8px">How to use</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.7">
+          1. Download the template above → fill your product data → save as <strong>.xlsx or .csv</strong><br>
+          2. Upload the filled file below → system will validate every row<br>
+          3. Fix any errors shown → re-upload → confirm to save to database
+        </div>
+      </div>
+      <!-- Upload zone -->
+      <div id="bulkDropZone" style="border:2px dashed var(--border2);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:border .2s;margin-bottom:14px;position:relative" onclick="g('bulkFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor=''" ondrop="handleBulkDrop(event)">
+        <input type="file" id="bulkFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleBulkFile(this.files[0])"/>
+        <div style="font-size:32px;margin-bottom:8px">📂</div>
+        <div style="font-size:14px;font-weight:600">Click or drag & drop your file here</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">Supports .xlsx, .xls, .csv</div>
+      </div>
+      <!-- Validation results -->
+      <div id="bulkValidation" style="display:none;margin-bottom:14px"></div>
+      <!-- Preview table -->
+      <div id="bulkPreview" style="display:none">
+        <div class="sh">
+          <div class="stt" id="bulkPreviewTitle">Preview</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="resetBulk()">✕ Cancel</button>
+            <button class="btn btn-primary btn-sm" id="bulkConfirmBtn" onclick="confirmBulkUpload()">✓ Upload to Database</button>
+          </div>
+        </div>
+        <div class="tw"><div class="ts"><table style="table-layout:auto"><thead id="bulkThead"></thead><tbody id="bulkTbl"></tbody></table></div></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -495,6 +596,41 @@ th.col-drop-right{border-right:2px solid var(--accent)}
       </div>
     </div>
     <div class="mft"><button class="btn btn-ghost" onclick="closeM('pwModal')">Cancel</button><button class="btn btn-primary" id="savePwBtn" onclick="savePassword()">Update Password</button></div>
+  </div>
+</div>
+
+<!-- STOCK MOVEMENT MODAL -->
+<div class="overlay" id="stockMvModal" onclick="bgc(event,'stockMvModal')">
+  <div class="modal" style="max-width:560px">
+    <div class="mhd"><div class="mt2" id="stockMvTitle">Update Stock</div><button class="mx" onclick="closeM('stockMvModal')">✕</button></div>
+    <div class="mbd">
+      <input type="hidden" id="smvProdId"/>
+      <div id="smvProdInfo" style="background:var(--bg3);border-radius:var(--r2);padding:10px 12px;margin-bottom:14px;font-size:13px"></div>
+      <!-- Step 1: new qty -->
+      <div id="smvStep1">
+        <div class="fg2"><label>New Quantity *</label><input type="number" id="smvQty" min="0" placeholder="Enter new quantity"/></div>
+        <div class="fg2"><label>Movement Date *</label><input type="datetime-local" id="smvDate"/></div>
+        <div style="display:flex;gap:9px;margin-top:5px">
+          <button class="btn btn-primary btn-sm" onclick="smvNext()">Next →</button>
+          <button class="btn btn-ghost btn-sm" onclick="closeM('stockMvModal')">Cancel</button>
+        </div>
+      </div>
+      <!-- Step 2: reason selection -->
+      <div id="smvStep2" style="display:none">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:11px" id="smvChangeInfo"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Reason for change</div>
+        <div id="smvReasonBtns" style="display:flex;flex-direction:column;gap:7px"></div>
+      </div>
+      <!-- Step 3: details form -->
+      <div id="smvStep3" style="display:none">
+        <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:11px" id="smvReasonLabel"></div>
+        <div id="smvForm"></div>
+        <div style="display:flex;gap:9px;margin-top:14px">
+          <button class="btn btn-primary btn-sm" id="smvSaveBtn" onclick="smvSave()">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="smvBack()">← Back</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -711,6 +847,7 @@ async function loadAllData(){
     _dbUsers=u.data||[];
     _dbLog=l.data||[];
   }catch(e){notif('Load error: '+e.message,'e');console.error(e);}
+  try{await loadMovementLog();}catch(e){console.warn('movement_log:',e.message);}
 }
 
 function setupRealtime(){
@@ -731,6 +868,9 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'users'},async()=>{
       const{data}=await sb.from('users').select('*').neq('role','admin').order('name');
       if(data){_dbUsers=data;if(cu?.role==='admin')renderUsers();}
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'movement_log'},async()=>{
+      await loadMovementLog();renderMv(_mvSecActive);
     })
     .subscribe();
 }
@@ -754,9 +894,9 @@ function showTab(name){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   g('t-'+name).classList.add('active');
   document.querySelectorAll('.ni').forEach(n=>{if(n.textContent.toLowerCase().includes(name.slice(0,5)))n.classList.add('active');});
-  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();}})[name]?.();
+  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>renderMv(0),bulkupload:()=>{}})[name]?.();
 }
-function renderAll(){renderDash();popFilters();renderProducts();renderStock();if(cu?.role==='admin'){renderPricing();renderUsers();}popStmtFilters();renderStatement();popExFilters();renderExport();renderChangelog();}
+function renderAll(){renderDash();popFilters();renderProducts();renderStock();if(cu?.role==='admin'){renderPricing();renderUsers();}popStmtFilters();renderStatement();popExFilters();renderExport();renderChangelog();renderMv(_mvSecActive);}
 function popAllFilters(){popFilters();popStmtFilters();popExFilters();}
 
 // ══════════════════════════════════════════════════════
@@ -1034,7 +1174,7 @@ function renderStock(){
       if(c.key==='status')return `<td><span class="badge ${sc}">${sl}</span></td>`;
       if(c.key==='qty')return `<td style="font-weight:700;font-size:15px">${p.qty}</td>`;
       if(c.key==='short_desc')return `<td><strong>${p.short_desc}</strong><br><span style="font-size:11px;color:var(--text2)">${p.brand||''}${p.variant?' '+p.variant:''}</span></td>`;
-      if(c.key==='update')return `<td>${ce?`<div style="display:flex;gap:5px;align-items:center"><input class="qin" type="number" id="qi_${p.id}" value="${p.qty}" min="0" onkeydown="if(event.key==='Enter')updateQty('${p.id}')"/><button class="btn btn-success btn-xs" onclick="updateQty('${p.id}')">✓ Save</button></div>`:'<span style="color:var(--text3);font-size:11px">View only</span>'}</td>`;
+      if(c.key==='update')return `<td>${ce?`<div style="display:flex;gap:5px;align-items:center"><input class="qin" type="number" id="qi_${p.id}" value="${p.qty}" min="0" onkeydown="if(event.key==='Enter')openStockMvModal('${p.id}')"/><button class="btn btn-success btn-xs" onclick="openStockMvModal('${p.id}')">✓ Update</button></div>`:'<span style="color:var(--text3);font-size:11px">View only</span>'}</td>`;
       return `<td>${p[c.key]||'—'}</td>`;
     }).join('')+'</tr>';
   }).join('');
@@ -1455,6 +1595,490 @@ function notif(msg,type='i'){
   el.className='notif show n'+(type==='s'?'s':type==='e'?'e':'i2');
   clearTimeout(_nt);_nt=setTimeout(()=>el.classList.remove('show'),3500);
 }
+
+// ══════════════════════════════════════════════════════
+// MOVEMENT LOG STATE & DATA
+// ══════════════════════════════════════════════════════
+let _mvData=[];   // loaded from supabase movement_log table
+let _mvSecActive=0;
+let _smvProd=null, _smvOldQty=0, _smvNewQty=0, _smvReason=null;
+
+// ══════════════════════════════════════════════════════
+// MOVEMENT LOG — SUPABASE SQL (run once):
+// create table movement_log (
+//   id uuid primary key default gen_random_uuid(),
+//   product_id uuid, product_code text, product_desc text,
+//   qty_change integer, old_qty integer, new_qty integer,
+//   movement_type text, -- 'sale','test_return','other','stock_in','correction'
+//   movement_date timestamptz default now(),
+//   invoice_no text, invoice_date date, waybill_no text, dc_no text,
+//   customer_name text, rdc_no text, expected_return date,
+//   doc_ref text, remarks text, done_by text,
+//   created_at timestamptz default now()
+// );
+// alter table movement_log disable row level security;
+// grant all on movement_log to anon;
+// alter publication supabase_realtime add table movement_log;
+// ══════════════════════════════════════════════════════
+
+async function loadMovementLog(){
+  const{data,error}=await sb.from('movement_log').select('*').order('movement_date',{ascending:false}).limit(500);
+  if(!error&&data)_mvData=data;
+}
+
+function showMvSec(idx){
+  _mvSecActive=idx;
+  [0,1,2].forEach(i=>{
+    g('mvSec'+i).style.display=i===idx?'block':'none';
+    const btn=g('mvSecBtn'+i);
+    btn.className=i===idx?'btn btn-primary btn-sm':'btn btn-ghost btn-sm';
+  });
+  renderMv(idx);
+}
+
+function renderMv(sec){
+  const types=[['sale'],['test_return'],['other','correction']];
+  const s=gv('mvSrch'+sec).toLowerCase();
+  const sortKey=gv('mvSort'+sec);
+  let rows=_mvData.filter(r=>types[sec].includes(r.movement_type));
+  if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.customer_name+r.invoice_no+r.dc_no+r.waybill_no+r.rdc_no+r.doc_ref+r.remarks||'').toLowerCase().includes(s));
+  if(sortKey==='date_desc')rows=[...rows].sort((a,b)=>new Date(b.movement_date)-new Date(a.movement_date));
+  else if(sortKey==='date_asc')rows=[...rows].sort((a,b)=>new Date(a.movement_date)-new Date(b.movement_date));
+  else if(sortKey==='code')rows=[...rows].sort((a,b)=>(a.product_code||'').localeCompare(b.product_code||''));
+
+  const tbody=g('mvTbl'+sec);
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text3)">No records</td></tr>`;return;}
+
+  if(sec===0){
+    tbody.innerHTML=rows.map(r=>{
+      const dt=new Date(r.movement_date);
+      return `<tr>
+        <td style="font-size:11px;color:var(--text2);white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
+        <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+        <td>${r.product_desc||'—'}</td>
+        <td style="font-weight:700;color:var(--red)">-${Math.abs(r.qty_change)}</td>
+        <td>${r.invoice_no||'—'}</td>
+        <td>${r.invoice_date||'—'}</td>
+        <td>${r.waybill_no||'—'}</td>
+        <td>${r.dc_no||'—'}</td>
+        <td>${r.customer_name||'—'}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.remarks||''}</td>
+      </tr>`;
+    }).join('');
+  } else if(sec===1){
+    tbody.innerHTML=rows.map(r=>{
+      const dt=new Date(r.movement_date);
+      return `<tr>
+        <td style="font-size:11px;color:var(--text2);white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
+        <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+        <td>${r.product_desc||'—'}</td>
+        <td style="font-weight:700;color:var(--amber)">-${Math.abs(r.qty_change)}</td>
+        <td>${r.rdc_no||'—'}</td>
+        <td>${r.waybill_no||'—'}</td>
+        <td>${r.dc_no||'—'}</td>
+        <td>${r.customer_name||'—'}</td>
+        <td>${r.expected_return||'—'}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.remarks||''}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    tbody.innerHTML=rows.map(r=>{
+      const dt=new Date(r.movement_date);
+      const qColor=r.qty_change>0?'var(--green)':'var(--red)';
+      return `<tr>
+        <td style="font-size:11px;color:var(--text2);white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
+        <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+        <td>${r.product_desc||'—'}</td>
+        <td style="font-weight:700;color:${qColor}">${r.qty_change>0?'+':''}${r.qty_change}</td>
+        <td>${r.doc_ref||'—'}</td>
+        <td>${r.waybill_no||'—'}</td>
+        <td>${r.dc_no||'—'}</td>
+        <td>${r.customer_name||'—'}</td>
+        <td>${r.expected_return||'—'}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.remarks||''}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// MOVEMENT LOG EXPORTS
+// ══════════════════════════════════════════════════════
+function exportMvExcel(sec){
+  const types=[['sale'],['test_return'],['other','correction']];
+  const titles=['Sales','Test_Return','Others'];
+  const rows=_mvData.filter(r=>types[sec].includes(r.movement_type));
+  if(!rows.length){notif('No records to export','e');return;}
+  let headers,data;
+  if(sec===0){
+    headers=['Date','Product Code','Description','Qty Change','Invoice No','Invoice Date','Waybill No','DC No','Customer','Remarks'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.invoice_no,r.invoice_date,r.waybill_no,r.dc_no,r.customer_name,r.remarks])];
+  } else if(sec===1){
+    headers=['Date','Product Code','Description','Qty Change','RDC No','Waybill No','DC No','Customer','Expected Return','Remarks'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.rdc_no,r.waybill_no,r.dc_no,r.customer_name,r.expected_return,r.remarks])];
+  } else {
+    headers=['Date','Product Code','Description','Qty Change','Doc Reference','Waybill No','DC No','Customer','Expected Return','Remarks'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.doc_ref,r.waybill_no,r.dc_no,r.customer_name,r.expected_return,r.remarks])];
+  }
+  const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:18}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,titles[sec]);
+  XLSX.writeFile(wb,`Visdil_${titles[sec]}_Log_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
+}
+
+function exportMvPDF(sec){
+  const types=[['sale'],['test_return'],['other','correction']];
+  const titles=['Sales Log','Test & Return Log','Others Log'];
+  const rows=_mvData.filter(r=>types[sec].includes(r.movement_type));
+  if(!rows.length){notif('No records to export','e');return;}
+  let headers,trs;
+  if(sec===0){
+    headers=['Date','Code','Description','Qty','Invoice No','Inv Date','Waybill','DC No','Customer','Remarks'];
+    trs=rows.map(r=>`<tr><td>${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="color:#dc2626;font-weight:700">-${Math.abs(r.qty_change)}</td><td>${r.invoice_no||''}</td><td>${r.invoice_date||''}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.customer_name||''}</td><td>${r.remarks||''}</td></tr>`).join('');
+  } else if(sec===1){
+    headers=['Date','Code','Description','Qty','RDC No','Waybill','DC No','Customer','Exp Return','Remarks'];
+    trs=rows.map(r=>`<tr><td>${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="color:#d97706;font-weight:700">-${Math.abs(r.qty_change)}</td><td>${r.rdc_no||''}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.customer_name||''}</td><td>${r.expected_return||''}</td><td>${r.remarks||''}</td></tr>`).join('');
+  } else {
+    headers=['Date','Code','Description','Qty','Doc Ref','Waybill','DC No','Customer','Exp Return','Remarks'];
+    trs=rows.map(r=>`<tr><td>${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="font-weight:700">${r.qty_change>0?'+':''}${r.qty_change}</td><td>${r.doc_ref||''}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.customer_name||''}</td><td>${r.expected_return||''}</td><td>${r.remarks||''}</td></tr>`).join('');
+  }
+  printPage(titles[sec],`<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`);
+}
+
+// ══════════════════════════════════════════════════════
+// STOCK MOVEMENT MODAL — multi-step
+// ══════════════════════════════════════════════════════
+function openStockMvModal(id){
+  _smvProd=products.find(x=>x.id===id);
+  if(!_smvProd)return;
+  _smvOldQty=_smvProd.qty;
+  _smvNewQty=0;_smvReason=null;
+  g('stockMvTitle').textContent=`Update Stock — ${_smvProd.code}`;
+  g('smvProdInfo').innerHTML=`<strong>${_smvProd.short_desc}</strong> <span style="color:var(--text2)">${_smvProd.brand}${_smvProd.variant?' · '+_smvProd.variant:''}</span><br><span style="color:var(--text2);font-size:12px">Current Stock: <strong style="color:var(--accent)">${_smvOldQty} units</strong></span>`;
+  sv('smvQty','');
+  sv('smvDate',new Date().toISOString().slice(0,16));
+  g('smvStep1').style.display='';g('smvStep2').style.display='none';g('smvStep3').style.display='none';
+  showO('stockMvModal');
+}
+
+function smvNext(){
+  const nq=parseInt(gv('smvQty'));
+  if(isNaN(nq)||nq<0){notif('Enter a valid quantity','e');return;}
+  if(!gv('smvDate')){notif('Enter movement date','e');return;}
+  _smvNewQty=nq;
+  const diff=nq-_smvOldQty;
+  g('smvChangeInfo').innerHTML=`Changing from <strong>${_smvOldQty}</strong> → <strong>${nq}</strong> <span style="color:${diff>0?'var(--green)':'var(--red)'}">(${diff>0?'+':''}${diff})</span>`;
+  // Build reason buttons based on direction
+  let btns='';
+  if(diff>0){
+    btns=`
+      <button class="btn btn-success btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('stock_in')">📥 New Stock Entry<br><small style="font-weight:400;opacity:.7">New purchase / goods received</small></button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('correction_up')">✏️ Data Entry Correction<br><small style="font-weight:400;opacity:.7">Fixing a mistake in qty</small></button>`;
+  } else if(diff<0){
+    btns=`
+      <button class="btn btn-danger btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('sale')">💰 Sale<br><small style="font-weight:400;opacity:.7">Goods sold to customer</small></button>
+      <button class="btn btn-amber btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('test_return')">🔄 Test & Return<br><small style="font-weight:400;opacity:.7">Sent for testing / demo</small></button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('other')">📋 Other Movement<br><small style="font-weight:400;opacity:.7">Transfer / damage / write-off</small></button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('correction_down')">✏️ Data Entry Correction<br><small style="font-weight:400;opacity:.7">Fixing a mistake in qty</small></button>`;
+  } else {
+    notif('Quantity is unchanged','e');return;
+  }
+  g('smvReasonBtns').innerHTML=`<div style="display:flex;flex-direction:column;gap:7px">${btns}<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="g('smvStep2').style.display='none';g('smvStep1').style.display=''">← Back</button></div>`;
+  g('smvStep1').style.display='none';g('smvStep2').style.display='';
+}
+
+function smvBack(){g('smvStep3').style.display='none';g('smvStep2').style.display='';}
+
+function smvSelectReason(reason){
+  _smvReason=reason;
+  const labels={stock_in:'📥 New Stock Entry',sale:'💰 Sale',test_return:'🔄 Test & Return',other:'📋 Other Movement',correction_up:'✏️ Data Entry Correction (Increase)',correction_down:'✏️ Data Entry Correction (Decrease)'};
+  g('smvReasonLabel').textContent=labels[reason]||reason;
+  const dateVal=gv('smvDate');
+  // Build form per reason
+  let form='';
+  if(reason==='stock_in'){
+    form=`
+      <div class="frow"><div class="fg2"><label>Invoice Number</label><input type="text" id="smvInvNo" placeholder="Optional"/></div><div class="fg2"><label>Invoice Date</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div></div>
+      <div class="frow"><div class="fg2"><label>DC / Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div><div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div></div>
+      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:50px" placeholder="Optional remarks"></textarea></div>`;
+  } else if(reason==='sale'){
+    form=`
+      <div class="frow"><div class="fg2"><label>Customer Name *</label><input type="text" id="smvCust" placeholder="Customer name"/></div><div class="fg2"><label>Invoice Number *</label><input type="text" id="smvInvNo" placeholder="Invoice number"/></div></div>
+      <div class="frow"><div class="fg2"><label>Invoice Date</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div></div>
+      <div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div>
+      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:50px" placeholder="Optional"></textarea></div>`;
+  } else if(reason==='test_return'){
+    form=`
+      <div class="frow"><div class="fg2"><label>Customer Name *</label><input type="text" id="smvCust" placeholder="Customer / company name"/></div><div class="fg2"><label>RDC Number</label><input type="text" id="smvRdcNo" placeholder="Return DC number"/></div></div>
+      <div class="frow"><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div><div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div></div>
+      <div class="frow"><div class="fg2"><label>Date of Shipment</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div><div class="fg2"><label>Expected Return Date</label><input type="date" id="smvExpReturn"/></div></div>
+      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:50px" placeholder="Optional"></textarea></div>`;
+  } else if(reason==='other'){
+    form=`
+      <div class="frow"><div class="fg2"><label>Customer / Party Name</label><input type="text" id="smvCust" placeholder="Optional"/></div><div class="fg2"><label>Document Reference</label><input type="text" id="smvDocRef" placeholder="Doc / support ref number"/></div></div>
+      <div class="frow"><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div><div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div></div>
+      <div class="frow"><div class="fg2"><label>Movement Date</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div><div class="fg2"><label>Expected Return Date</label><input type="date" id="smvExpReturn" placeholder="If applicable"/></div></div>
+      <div class="fg2"><label>Remarks *</label><textarea id="smvRemarks" style="min-height:60px" placeholder="Describe the reason for movement"></textarea></div>`;
+  } else { // correction
+    form=`<div class="fg2"><label>Reason / Remarks *</label><textarea id="smvRemarks" style="min-height:80px" placeholder="Describe why the quantity is being corrected (e.g. counting error, system mistake)"></textarea></div>`;
+  }
+  g('smvForm').innerHTML=form;
+  g('smvStep2').style.display='none';g('smvStep3').style.display='';
+}
+
+async function smvSave(){
+  if(!_smvProd||!_smvReason)return;
+  const diff=_smvNewQty-_smvOldQty;
+  const movDate=gv('smvDate')||new Date().toISOString();
+  // Validation
+  if(_smvReason==='sale'){
+    if(!gv('smvCust').trim()){notif('Customer name is required for sale','e');return;}
+    if(!gv('smvInvNo').trim()){notif('Invoice number is required for sale','e');return;}
+  }
+  if(_smvReason==='test_return'&&!gv('smvCust').trim()){notif('Customer name is required','e');return;}
+  if((_smvReason==='other'||_smvReason.startsWith('correction'))&&!gv('smvRemarks').trim()){notif('Remarks are required','e');return;}
+
+  setBtnLoad('smvSaveBtn','Saving...');
+  try{
+    // 1. Update product qty
+    const{error:qErr}=await sb.from('products').update({qty:_smvNewQty,updated_at:new Date().toISOString()}).eq('id',_smvProd.id);
+    if(qErr)throw qErr;
+
+    // 2. Determine movement_type for log
+    const mvTypeMap={stock_in:'stock_in',sale:'sale',test_return:'test_return',other:'other',correction_up:'correction',correction_down:'correction'};
+    const mvType=mvTypeMap[_smvReason]||'other';
+
+    // 3. Insert movement log
+    const mvRow={
+      product_id:_smvProd.id,product_code:_smvProd.code,product_desc:_smvProd.short_desc,
+      qty_change:diff,old_qty:_smvOldQty,new_qty:_smvNewQty,
+      movement_type:mvType,
+      movement_date:movDate,
+      invoice_no:gv('smvInvNo')||null,
+      invoice_date:gv('smvInvDate')||null,
+      waybill_no:gv('smvWaybill')||null,
+      dc_no:gv('smvDcNo')||null,
+      customer_name:gv('smvCust')||null,
+      rdc_no:gv('smvRdcNo')||null,
+      expected_return:gv('smvExpReturn')||null,
+      doc_ref:gv('smvDocRef')||null,
+      remarks:gv('smvRemarks')||null,
+      done_by:cu.name
+    };
+    const{error:mvErr}=await sb.from('movement_log').insert([mvRow]);
+    if(mvErr)throw mvErr;
+
+    // 4. Add to activity log
+    const actionLabels={stock_in:'Stock In',sale:'Stock Out — Sale',test_return:'Stock Out — Test/Return',other:'Stock Movement',correction:'Stock Correction'};
+    await addLog('Stock Updated',_smvProd.short_desc,`${actionLabels[mvType]} | ${_smvOldQty} → ${_smvNewQty}`,_smvOldQty,_smvNewQty);
+
+    // 5. Refresh local data
+    const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
+    if(pd)products=pd;
+    await loadMovementLog();
+
+    closeM('stockMvModal');
+    renderAll();
+    renderMv(_mvSecActive);
+    notif(`Stock updated: ${_smvProd.code} → ${_smvNewQty} units`,'s');
+  }catch(e){notif('Save failed: '+e.message,'e');}
+  finally{setBtnLoad('smvSaveBtn',null,'Save');}
+}
+
+// ══════════════════════════════════════════════════════
+// BULK UPLOAD
+// ══════════════════════════════════════════════════════
+let _bulkRows=[];
+
+const BULK_COLS=[
+  {key:'code',label:'Product Code',type:'text',required:true,example:'PROD-001'},
+  {key:'category',label:'Category',type:'text',required:true,example:'Electronics'},
+  {key:'brand',label:'Brand',type:'text',required:true,example:'Samsung'},
+  {key:'short_desc',label:'Short Description',type:'text',required:true,example:'LED TV 55 inch'},
+  {key:'variant',label:'Variant',type:'text',required:false,example:'Black'},
+  {key:'serial_number',label:'Serial Number',type:'text',required:false,example:'SN12345'},
+  {key:'yom',label:'Year of Mfg (MM/YY)',type:'text',required:false,example:'01/24'},
+  {key:'package_type',label:'Package Type',type:'text',required:false,example:'Box'},
+  {key:'qty',label:'Quantity',type:'number',required:true,example:'10'},
+  {key:'location',label:'Location',type:'text',required:false,example:'Warehouse A'},
+  {key:'storage_area',label:'Storage Area',type:'text',required:false,example:'Rack 3'},
+  {key:'description',label:'Long Description',type:'text',required:false,example:'Full HD LED TV with smart features'},
+  {key:'remarks',label:'Remarks',type:'text',required:false,example:'Handle with care'},
+  {key:'dim_l',label:'Length',type:'number',required:false,example:'1200'},
+  {key:'dim_w',label:'Width',type:'number',required:false,example:'800'},
+  {key:'dim_h',label:'Height',type:'number',required:false,example:'100'},
+  {key:'dim_unit',label:'Dimension Unit (mm/cm/mts)',type:'text',required:false,example:'mm'},
+  {key:'weight_kg',label:'Weight (kg)',type:'number',required:false,example:'12.5'},
+  {key:'invoice_no',label:'Invoice Number',type:'text',required:false,example:'INV-2024-001'},
+  {key:'invoice_date',label:'Invoice Date (YYYY-MM-DD)',type:'date',required:false,example:'2024-01-15'},
+  {key:'dc_waybill',label:'DC / Waybill Number',type:'text',required:false,example:'DC-001'},
+];
+
+function downloadTemplate(){
+  const header=BULK_COLS.map(c=>c.label);
+  const typeRow=BULK_COLS.map(c=>`[${c.type}]${c.required?' *REQUIRED':''}`.trim());
+  const exampleRow=BULK_COLS.map(c=>c.example||'');
+  const data=[header,typeRow,exampleRow];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  // Style header row width
+  ws['!cols']=BULK_COLS.map(()=>({wch:22}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Products_Template');
+  XLSX.writeFile(wb,'Visdil_Bulk_Upload_Template.xlsx');
+  notif('Template downloaded! Fill rows from row 4 onwards.','s');
+}
+
+function handleBulkDrop(e){
+  e.preventDefault();g('bulkDropZone').style.borderColor='';
+  const f=e.dataTransfer.files[0];
+  if(f)handleBulkFile(f);
+}
+
+function handleBulkFile(file){
+  if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!['xlsx','xls','csv'].includes(ext)){notif('Only .xlsx, .xls, .csv files allowed','e');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      parseBulkData(raw);
+    }catch(err){notif('Could not read file: '+err.message,'e');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseBulkData(raw){
+  // Find header row — the row that contains our column labels
+  let headerRowIdx=-1;
+  const labelSet=new Set(BULK_COLS.map(c=>c.label.toLowerCase().trim()));
+  for(let i=0;i<Math.min(raw.length,5);i++){
+    const matchCount=raw[i].filter(cell=>labelSet.has(String(cell).toLowerCase().trim())).length;
+    if(matchCount>=4){headerRowIdx=i;break;}
+  }
+  if(headerRowIdx<0){
+    showBulkError([{row:'—',errors:['Could not find header row. Please use the downloaded template — headers must match exactly.']}]);
+    return;
+  }
+  // Map columns
+  const headers=raw[headerRowIdx].map(h=>String(h).trim());
+  const colMap={};
+  BULK_COLS.forEach(col=>{
+    const idx=headers.findIndex(h=>h.toLowerCase()===col.label.toLowerCase());
+    if(idx>=0)colMap[col.key]=idx;
+  });
+  // Parse data rows (skip header, type row, example row if present)
+  const dataRows=raw.slice(headerRowIdx+1).filter(row=>row.some(cell=>String(cell).trim()!==''));
+  if(!dataRows.length){notif('No data rows found in file','e');return;}
+
+  const errors=[];
+  const parsed=[];
+  dataRows.forEach((row,ri)=>{
+    const rowNum=headerRowIdx+2+ri;
+    const rowErrors=[];
+    const obj={};
+    BULK_COLS.forEach(col=>{
+      const cidx=colMap[col.key];
+      let val=cidx!==undefined?String(row[cidx]||'').trim():'';
+      // Skip type/example rows
+      if(val.startsWith('[text]')||val.startsWith('[number]')||val==='*REQUIRED')val='';
+      if(col.required&&!val){
+        rowErrors.push(`"${col.label}" is required`);
+      }
+      if(val&&col.type==='number'){
+        if(isNaN(parseFloat(val)))rowErrors.push(`"${col.label}" must be a number (got: ${val})`);
+        else obj[col.key]=parseFloat(val);
+      } else if(val&&col.type==='date'){
+        // Accept various date formats
+        const d=new Date(val);
+        if(isNaN(d.getTime()))rowErrors.push(`"${col.label}" invalid date (use YYYY-MM-DD, got: ${val})`);
+        else obj[col.key]=d.toISOString().slice(0,10);
+      } else {
+        obj[col.key]=val||null;
+      }
+    });
+    // Set defaults
+    if(!obj.dim_unit)obj.dim_unit='mm';
+    if(obj.qty===undefined||obj.qty===null)obj.qty=0;
+    if(rowErrors.length){errors.push({row:rowNum,errors:rowErrors});}
+    parsed.push({...obj,_rowNum:rowNum,_hasError:rowErrors.length>0});
+  });
+
+  _bulkRows=parsed;
+  if(errors.length){
+    showBulkError(errors);
+    // Still show preview with errors highlighted
+  }
+  showBulkPreview(parsed,errors.length);
+}
+
+function showBulkError(errors){
+  const v=g('bulkValidation');v.style.display='';
+  v.innerHTML=`<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--r);padding:13px 15px">
+    <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:8px">⚠️ ${errors.length} row(s) have errors — fix them before uploading</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${errors.map(e=>`<div style="font-size:12px"><span style="color:var(--amber);font-weight:600">Row ${e.row}:</span> ${e.errors.join(' · ')}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function showBulkPreview(rows,errorCount){
+  const valid=rows.filter(r=>!r._hasError);
+  const invalid=rows.filter(r=>r._hasError);
+  g('bulkPreview').style.display='';
+  g('bulkPreviewTitle').textContent=`Preview — ${valid.length} valid rows${invalid.length?`, ${invalid.length} with errors (shown in red)`:''} `;
+  if(errorCount>0)g('bulkConfirmBtn').disabled=true,g('bulkConfirmBtn').style.opacity='.4',g('bulkConfirmBtn').title='Fix all errors before uploading';
+  else g('bulkConfirmBtn').disabled=false,g('bulkConfirmBtn').style.opacity='',g('bulkConfirmBtn').title='';
+
+  const previewCols=['_rowNum','code','category','brand','short_desc','variant','qty','location'];
+  g('bulkThead').innerHTML='<tr><th>Row</th><th>Code</th><th>Category</th><th>Brand</th><th>Short Desc</th><th>Variant</th><th>Qty</th><th>Location</th><th>Status</th></tr>';
+  g('bulkTbl').innerHTML=rows.map(r=>{
+    const rowStyle=r._hasError?'background:rgba(239,68,68,.08)':'';
+    const status=r._hasError?`<span class="badge br">Error</span>`:`<span class="badge bg">✓ Valid</span>`;
+    return `<tr style="${rowStyle}"><td style="font-size:11px;color:var(--text2)">${r._rowNum}</td><td style="font-family:monospace;color:var(--accent)">${r.code||'—'}</td><td>${r.category||'—'}</td><td>${r.brand||'—'}</td><td>${r.short_desc||'—'}</td><td>${r.variant||'—'}</td><td style="font-weight:700">${r.qty??0}</td><td>${r.location||'—'}</td><td>${status}</td></tr>`;
+  }).join('');
+}
+
+function resetBulk(){
+  _bulkRows=[];
+  g('bulkValidation').style.display='none';
+  g('bulkPreview').style.display='none';
+  g('bulkFileInput').value='';
+  g('bulkDropZone').style.borderColor='';
+}
+
+async function confirmBulkUpload(){
+  const valid=_bulkRows.filter(r=>!r._hasError);
+  if(!valid.length){notif('No valid rows to upload','e');return;}
+  setBtnLoad('bulkConfirmBtn','Uploading...');
+  try{
+    // Clean rows — remove _rowNum and _hasError meta fields
+    const rows=valid.map(r=>{
+      const{_rowNum,_hasError,...clean}=r;
+      return{...clean,created_by:cu.name,entry_time:new Date().toISOString(),updated_at:new Date().toISOString()};
+    });
+    // Supabase insert in batches of 50
+    const batchSize=50;
+    let inserted=0;
+    for(let i=0;i<rows.length;i+=batchSize){
+      const batch=rows.slice(i,i+batchSize);
+      const{error}=await sb.from('products').insert(batch);
+      if(error)throw error;
+      inserted+=batch.length;
+    }
+    await addLog('Bulk Upload',`${inserted} products`,`Bulk uploaded by ${cu.name}`,'',inserted);
+    const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
+    if(pd)products=pd;
+    resetBulk();
+    renderAll();
+    notif(`${inserted} products uploaded successfully!`,'s');
+    showTab('products');
+  }catch(e){notif('Upload failed: '+e.message,'e');}
+  finally{setBtnLoad('bulkConfirmBtn',null,'✓ Upload to Database');}
+}
+
+
 </script>
 </body>
 </html>
