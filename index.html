@@ -378,17 +378,23 @@ th.col-drop-right{border-right:2px solid var(--accent)}
 
     <!-- MOVEMENT LOG TAB -->
     <div class="tab" id="t-movement">
-      <div class="sh"><div class="stt">Stock Movement & Sales Log</div></div>
-      <!-- Section selector -->
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" id="mvSecBtn0" onclick="showMvSec(0)">📦 Sales</button>
-        <button class="btn btn-ghost btn-sm" id="mvSecBtn1" onclick="showMvSec(1)">🔄 Test & Return</button>
-        <button class="btn btn-ghost btn-sm" id="mvSecBtn2" onclick="showMvSec(2)">📋 Others</button>
+      <div class="sh"><div class="stt">Stock Movement Log</div></div>
+      <!-- INWARD / OUTWARD tabs -->
+      <div style="display:flex;gap:0;margin-bottom:0;border-bottom:1px solid var(--border)">
+        <button id="mvDirBtn0" class="btn btn-primary btn-sm" style="border-radius:6px 6px 0 0;border-bottom:none" onclick="showMvDir(0)">⬆️ Inward</button>
+        <button id="mvDirBtn1" class="btn btn-ghost btn-sm"  style="border-radius:6px 6px 0 0;border-bottom:none;margin-left:4px" onclick="showMvDir(1)">⬇️ Outward</button>
       </div>
-      <!-- SALES SECTION -->
-      <div id="mvSec0">
-        <div class="sh">
-          <div class="stt" style="font-size:13px;color:var(--accent)">📦 Sales Log</div>
+
+      <!-- ═══ INWARD ═══ -->
+      <div id="mvDir0">
+        <div style="display:flex;gap:7px;padding:10px 0 6px;flex-wrap:wrap">
+          <button id="mvSecBtn0" class="btn btn-success btn-sm" onclick="showMvSec(0)">📥 Stock In</button>
+          <button id="mvSecBtn1" class="btn btn-ghost btn-sm" onclick="showMvSec(1)">✏️ Data Corrections</button>
+        </div>
+        
+      <div id="mvSec0" style="display:none">
+        <div class="sh" style="margin-top:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--green)">📥 Inward — Stock In</div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(0)">⬇ Excel</button>
             <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(0)">📄 PDF</button>
@@ -396,16 +402,15 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         </div>
         <div class="tw">
           <div class="tb">
-            <input class="srch" id="mvSrch0" placeholder="Search..." oninput="renderMv(0)"/>
-            <select class="flt" id="mvSort0" onchange="renderMv(0)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+            <input class="srch" id="mvSrch0" placeholder="Search stock-in entries..." oninput="renderMvSec(0)"/>
+            <select class="flt" id="mvSort0" onchange="renderMvSec(0)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
           </div>
-          <div class="ts"><table><thead id="mvThead0"><tr><th>Date</th><th>Product Code</th><th>Description</th><th>Qty</th><th>Invoice No</th><th>Invoice Date</th><th>Waybill No</th><th>DC No</th><th>Customer</th><th>Remarks</th></tr></thead><tbody id="mvTbl0"></tbody></table></div>
+          <div class="ts"><table><thead id="mvThead0"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Invoice No</th><th>Invoice Date</th><th>Waybill No</th><th>DC No</th><th>Supplier/Remarks</th></tr></thead><tbody id="mvTbl0"></tbody></table></div>
         </div>
       </div>
-      <!-- TEST & RETURN SECTION -->
       <div id="mvSec1" style="display:none">
-        <div class="sh">
-          <div class="stt" style="font-size:13px;color:var(--amber)">🔄 Test & Return Log</div>
+        <div class="sh" style="margin-top:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--text2)">✏️ Inward — Data Entry Corrections</div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(1)">⬇ Excel</button>
             <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(1)">📄 PDF</button>
@@ -413,16 +418,26 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         </div>
         <div class="tw">
           <div class="tb">
-            <input class="srch" id="mvSrch1" placeholder="Search..." oninput="renderMv(1)"/>
-            <select class="flt" id="mvSort1" onchange="renderMv(1)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+            <input class="srch" id="mvSrch1" placeholder="Search corrections..." oninput="renderMvSec(1)"/>
+            <select class="flt" id="mvSort1" onchange="renderMvSec(1)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
           </div>
-          <div class="ts"><table><thead id="mvThead1"><tr><th>Date</th><th>Product Code</th><th>Description</th><th>Qty</th><th>RDC No</th><th>Waybill No</th><th>DC No</th><th>Customer</th><th>Expected Return</th><th>Remarks</th></tr></thead><tbody id="mvTbl1"></tbody></table></div>
+          <div class="ts"><table><thead id="mvThead1"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Reason / Remarks</th><th>By</th></tr></thead><tbody id="mvTbl1"></tbody></table></div>
         </div>
       </div>
-      <!-- OTHERS SECTION -->
+      </div>
+
+      <!-- ═══ OUTWARD ═══ -->
+      <div id="mvDir1" style="display:none">
+        <div style="display:flex;gap:7px;padding:10px 0 6px;flex-wrap:wrap">
+          <button id="mvSecBtn2" class="btn btn-danger btn-sm" onclick="showMvSec(2)">💰 Sales</button>
+          <button id="mvSecBtn3" class="btn btn-ghost btn-sm" onclick="showMvSec(3)">🔄 Test & Return</button>
+          <button id="mvSecBtn4" class="btn btn-ghost btn-sm" onclick="showMvSec(4)">📋 Others</button>
+          <button id="mvSecBtn5" class="btn btn-ghost btn-sm" onclick="showMvSec(5)">✏️ Data Corrections</button>
+        </div>
+        
       <div id="mvSec2" style="display:none">
-        <div class="sh">
-          <div class="stt" style="font-size:13px;color:var(--purple)">📋 Others Log</div>
+        <div class="sh" style="margin-top:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--red)">💰 Outward — Sales</div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(2)">⬇ Excel</button>
             <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(2)">📄 PDF</button>
@@ -430,11 +445,60 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         </div>
         <div class="tw">
           <div class="tb">
-            <input class="srch" id="mvSrch2" placeholder="Search..." oninput="renderMv(2)"/>
-            <select class="flt" id="mvSort2" onchange="renderMv(2)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+            <input class="srch" id="mvSrch2" placeholder="Search sales..." oninput="renderMvSec(2)"/>
+            <select class="flt" id="mvSort2" onchange="renderMvSec(2)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
           </div>
-          <div class="ts"><table><thead id="mvThead2"><tr><th>Date</th><th>Product Code</th><th>Description</th><th>Qty</th><th>Doc Reference</th><th>Waybill No</th><th>DC No</th><th>Customer</th><th>Expected Return</th><th>Remarks</th></tr></thead><tbody id="mvTbl2"></tbody></table></div>
+          <div class="ts"><table><thead id="mvThead2"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Customer</th><th>Invoice No</th><th>Invoice Date</th><th>Waybill No</th><th>DC No</th><th>Remarks</th></tr></thead><tbody id="mvTbl2"></tbody></table></div>
         </div>
+      </div>
+      <div id="mvSec3" style="display:none">
+        <div class="sh" style="margin-top:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--amber)">🔄 Outward — Test & Return</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(3)">⬇ Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(3)">📄 PDF</button>
+          </div>
+        </div>
+        <div class="tw">
+          <div class="tb">
+            <input class="srch" id="mvSrch3" placeholder="Search test & return..." oninput="renderMvSec(3)"/>
+            <select class="flt" id="mvSort3" onchange="renderMvSec(3)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <div class="ts"><table><thead id="mvThead3"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Customer</th><th>RDC No</th><th>Shipment Date</th><th>Expected Return</th><th>Waybill No</th><th>DC No</th><th>Remarks</th></tr></thead><tbody id="mvTbl3"></tbody></table></div>
+        </div>
+      </div>
+      <div id="mvSec4" style="display:none">
+        <div class="sh" style="margin-top:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--purple)">📋 Outward — Others</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(4)">⬇ Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(4)">📄 PDF</button>
+          </div>
+        </div>
+        <div class="tw">
+          <div class="tb">
+            <input class="srch" id="mvSrch4" placeholder="Search others..." oninput="renderMvSec(4)"/>
+            <select class="flt" id="mvSort4" onchange="renderMvSec(4)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <div class="ts"><table><thead id="mvThead4"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Customer/Party</th><th>Doc Reference</th><th>Waybill No</th><th>DC No</th><th>Expected Return</th><th>Remarks</th></tr></thead><tbody id="mvTbl4"></tbody></table></div>
+        </div>
+      </div>
+      <div id="mvSec5" style="display:none">
+        <div class="sh" style="margin-top:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--text2)">✏️ Outward — Data Corrections</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="exportMvExcel(5)">⬇ Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportMvPDF(5)">📄 PDF</button>
+          </div>
+        </div>
+        <div class="tw">
+          <div class="tb">
+            <input class="srch" id="mvSrch5" placeholder="Search corrections..." oninput="renderMvSec(5)"/>
+            <select class="flt" id="mvSort5" onchange="renderMvSec(5)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <div class="ts"><table><thead id="mvThead5"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Reason / Remarks</th><th>By</th></tr></thead><tbody id="mvTbl5"></tbody></table></div>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -596,6 +660,15 @@ th.col-drop-right{border-right:2px solid var(--accent)}
       </div>
     </div>
     <div class="mft"><button class="btn btn-ghost" onclick="closeM('pwModal')">Cancel</button><button class="btn btn-primary" id="savePwBtn" onclick="savePassword()">Update Password</button></div>
+  </div>
+</div>
+
+<!-- EDIT MOVEMENT LOG MODAL -->
+<div class="overlay" id="editMvModal" onclick="bgc(event,'editMvModal')">
+  <div class="modal" style="max-width:540px">
+    <div class="mhd"><div class="mt2">✏️ Edit Movement Entry</div><button class="mx" onclick="closeM('editMvModal')">✕</button></div>
+    <div class="mbd" id="emvFormBody"></div>
+    <div class="mft"><button class="btn btn-ghost" onclick="closeM('editMvModal')">Cancel</button><button class="btn btn-primary" id="saveEmvBtn" onclick="saveEditMv()">Save Changes</button></div>
   </div>
 </div>
 
@@ -894,7 +967,7 @@ function showTab(name){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   g('t-'+name).classList.add('active');
   document.querySelectorAll('.ni').forEach(n=>{if(n.textContent.toLowerCase().includes(name.slice(0,5)))n.classList.add('active');});
-  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>renderMv(0),bulkupload:()=>{}})[name]?.();
+  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>{showMvDir(0);},bulkupload:()=>{}})[name]?.();
 }
 function renderAll(){renderDash();popFilters();renderProducts();renderStock();if(cu?.role==='admin'){renderPricing();renderUsers();}popStmtFilters();renderStatement();popExFilters();renderExport();renderChangelog();renderMv(_mvSecActive);}
 function popAllFilters(){popFilters();popStmtFilters();popExFilters();}
@@ -1135,7 +1208,20 @@ function viewProd(id){
   let ph='';if(cp&&pr){ph=`<div style="margin-top:13px;border-top:1px solid var(--border);padding-top:11px"><div style="font-size:11px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;font-weight:600">Pricing</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px">${PK.map(k=>`<div style="background:var(--bg3);border-radius:6px;padding:7px 9px"><div style="font-size:10px;color:var(--text2)">${PL[k]}</div><div class="pv">₹${parseFloat(pr[k]||0).toFixed(2)}</div></div>`).join('')}</div></div>`;}
   let docs='';if(p.inv_pdf)docs+=`<button class="btn btn-ghost btn-xs" onclick="dlFile('${p.id}','inv')">📄 Invoice</button> `;if(p.dc_pdf)docs+=`<button class="btn btn-ghost btn-xs" onclick="dlFile('${p.id}','dc')">📄 DC/Waybill</button>`;
   let imgH=p.image?`<img src="${p.image}" style="max-width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-bottom:11px;display:block" />`:'';
-  g('viewBody').innerHTML=`${imgH}<div style="display:flex;gap:11px;align-items:flex-start;margin-bottom:13px"><div style="background:var(--bg3);border-radius:7px;padding:8px 12px;font-size:15px;font-weight:700;color:var(--accent);font-family:monospace;flex-shrink:0">${p.code}</div><div><div style="font-size:16px;font-weight:600">${p.short_desc}</div><div style="color:var(--text2);font-size:12px;margin-top:2px">${p.brand}${p.variant?' · '+p.variant:''}${p.yom?' · YOM:'+p.yom:''}</div></div></div>${p.description?`<div style="background:var(--bg3);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px;line-height:1.6">${p.description}</div>`:''} ${p.remarks?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px"><strong style="color:var(--amber)">Remarks:</strong> ${p.remarks}</div>`:''}<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;margin-bottom:11px">${row('Category',p.category)}${row('Brand',p.brand)}${row('Variant',p.variant)}${row('Serial No',p.serial_number)}${row('Package',p.package_type)}<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Stock</div><div style="color:${qc};font-weight:700;font-size:15px">${p.qty} units</div></div>${row('Location',p.location)}${row('Storage',p.storage_area)}${row('Dimensions',dim)}${row('Weight',p.weight_kg?p.weight_kg+' kg':'')}${row('Invoice No',p.invoice_no)}${row('Invoice Date',p.invoice_date)}${row('DC/Waybill',p.dc_waybill)}${row('Entry Time',p.entry_time?new Date(p.entry_time).toLocaleString():'')}</div>${docs?`<div style="display:flex;gap:7px;margin-bottom:11px">${docs}</div>`:''}${ph}`;
+  // inward history section
+  const inHist=getProductInwardHistory(p.id);
+  let histHtml='';
+  if(inHist.length>0){
+    histHtml=`<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:11px;text-transform:uppercase;color:var(--text2);margin-bottom:8px;font-weight:600">📥 Stock-In History (${inHist.length} entries)</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3)"><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Date</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Qty Added</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Invoice No</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Invoice Date</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Waybill</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">DC No</th><th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Remarks</th></tr></thead>
+        <tbody>${inHist.map(r=>`<tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text2)">${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td style="padding:5px 8px;color:var(--green);font-weight:700">+${r.qty_change}</td><td style="padding:5px 8px">${r.invoice_no||'—'}</td><td style="padding:5px 8px">${r.invoice_date?new Date(r.invoice_date).toLocaleDateString('en-IN'):'—'}</td><td style="padding:5px 8px">${r.waybill_no||'—'}</td><td style="padding:5px 8px">${r.dc_no||'—'}</td><td style="padding:5px 8px;color:var(--text2)">${r.remarks||'—'}</td></tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  }
+  g('viewBody').innerHTML=`${imgH}<div style="display:flex;gap:11px;align-items:flex-start;margin-bottom:13px"><div style="background:var(--bg3);border-radius:7px;padding:8px 12px;font-size:15px;font-weight:700;color:var(--accent);font-family:monospace;flex-shrink:0">${p.code}</div><div><div style="font-size:16px;font-weight:600">${p.short_desc}</div><div style="color:var(--text2);font-size:12px;margin-top:2px">${p.brand}${p.variant?' · '+p.variant:''}${p.yom?' · YOM:'+p.yom:''}</div></div></div>${p.description?`<div style="background:var(--bg3);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px;line-height:1.6">${p.description}</div>`:''} ${p.remarks?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2);padding:8px 11px;font-size:13px;margin-bottom:10px"><strong style="color:var(--amber)">Remarks:</strong> ${p.remarks}</div>`:''}<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;margin-bottom:11px">${row('Category',p.category)}${row('Brand',p.brand)}${row('Variant',p.variant)}${row('Serial No',p.serial_number)}${row('Package',p.package_type)}<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Stock</div><div style="color:${qc};font-weight:700;font-size:15px">${p.qty} units</div></div>${row('Location',p.location)}${row('Storage',p.storage_area)}${row('Dimensions',dim)}${row('Weight',p.weight_kg?p.weight_kg+' kg':'')}${row('Invoice No',p.invoice_no)}${row('Invoice Date',p.invoice_date)}${row('DC/Waybill',p.dc_waybill)}${row('Entry Time',p.entry_time?new Date(p.entry_time).toLocaleString():'')}</div>${docs?`<div style="display:flex;gap:7px;margin-bottom:11px">${docs}</div>`:''}${ph}${histHtml||''}`;
   showO('viewModal');
 }
 function dlFile(id,which){const p=products.find(x=>x.id===id);if(!p)return;const data=which==='inv'?p.inv_pdf:p.dc_pdf;const name=which==='inv'?(p.inv_pdf_name||'Invoice.pdf'):(p.dc_pdf_name||'DC.pdf');if(!data)return;const a=document.createElement('a');a.href=data;a.download=name;a.click();}
@@ -1599,153 +1685,280 @@ function notif(msg,type='i'){
 // ══════════════════════════════════════════════════════
 // MOVEMENT LOG STATE & DATA
 // ══════════════════════════════════════════════════════
-let _mvData=[];   // loaded from supabase movement_log table
-let _mvSecActive=0;
+let _mvData=[];
+let _mvDirActive=0;   // 0=inward, 1=outward
+let _mvSecActive=0;   // 0-5 section index
 let _smvProd=null, _smvOldQty=0, _smvNewQty=0, _smvReason=null;
 
-// ══════════════════════════════════════════════════════
-// MOVEMENT LOG — SUPABASE SQL (run once):
-// create table movement_log (
-//   id uuid primary key default gen_random_uuid(),
-//   product_id uuid, product_code text, product_desc text,
-//   qty_change integer, old_qty integer, new_qty integer,
-//   movement_type text, -- 'sale','test_return','other','stock_in','correction'
-//   movement_date timestamptz default now(),
-//   invoice_no text, invoice_date date, waybill_no text, dc_no text,
-//   customer_name text, rdc_no text, expected_return date,
-//   doc_ref text, remarks text, done_by text,
-//   created_at timestamptz default now()
-// );
-// alter table movement_log disable row level security;
-// grant all on movement_log to anon;
-// alter publication supabase_realtime add table movement_log;
-// ══════════════════════════════════════════════════════
+// Section config: [movement_types[], dirIndex]
+const MV_SEC_CFG=[
+  {types:['stock_in'],          dir:0, label:'📥 Stock In'},
+  {types:['correction_up'],     dir:0, label:'✏️ Inward Correction'},
+  {types:['sale'],              dir:1, label:'💰 Sales'},
+  {types:['test_return'],       dir:1, label:'🔄 Test & Return'},
+  {types:['other'],             dir:1, label:'📋 Others'},
+  {types:['correction_down'],   dir:1, label:'✏️ Outward Correction'},
+];
 
 async function loadMovementLog(){
-  const{data,error}=await sb.from('movement_log').select('*').order('movement_date',{ascending:false}).limit(500);
-  if(!error&&data)_mvData=data;
+  try{
+    const{data,error}=await sb.from('movement_log').select('*').order('movement_date',{ascending:false}).limit(1000);
+    if(error)throw error;
+    if(data)_mvData=data;
+  }catch(e){console.warn('movement_log load:',e.message);}
 }
 
+// Show Inward(0) or Outward(1) direction panel
+function showMvDir(dir){
+  _mvDirActive=dir;
+  g('mvDir0').style.display=dir===0?'block':'none';
+  g('mvDir1').style.display=dir===1?'block':'none';
+  g('mvDirBtn0').className='btn btn-'+(dir===0?'primary':'ghost')+' btn-sm';
+  g('mvDirBtn0').style.cssText='border-radius:6px 6px 0 0;border-bottom:none';
+  g('mvDirBtn1').className='btn btn-'+(dir===1?'primary':'ghost')+' btn-sm';
+  g('mvDirBtn1').style.cssText='border-radius:6px 6px 0 0;border-bottom:none;margin-left:4px';
+  // Show first section of that dir
+  const firstSec=MV_SEC_CFG.findIndex(c=>c.dir===dir);
+  if(firstSec>=0)showMvSec(firstSec);
+}
+
+// Show a specific section (0-5)
 function showMvSec(idx){
   _mvSecActive=idx;
-  [0,1,2].forEach(i=>{
-    g('mvSec'+i).style.display=i===idx?'block':'none';
+  const dir=MV_SEC_CFG[idx].dir;
+  if(dir!==_mvDirActive)showMvDir(dir);
+  // Hide all sections in current dir, show selected
+  MV_SEC_CFG.forEach((cfg,i)=>{
+    const el=g('mvSec'+i);if(el)el.style.display='none';
     const btn=g('mvSecBtn'+i);
-    btn.className=i===idx?'btn btn-primary btn-sm':'btn btn-ghost btn-sm';
+    if(btn){
+      const isActive=i===idx;
+      const colorMap={0:'success',1:'ghost',2:'danger',3:'ghost',4:'ghost',5:'ghost'};
+      btn.className='btn btn-'+(isActive?colorMap[i]||'primary':'ghost')+' btn-sm';
+    }
   });
-  renderMv(idx);
+  const sel=g('mvSec'+idx);if(sel)sel.style.display='block';
+  renderMvSec(idx);
 }
 
-function renderMv(sec){
-  const types=[['sale'],['test_return'],['other','correction']];
-  const s=gv('mvSrch'+sec).toLowerCase();
-  const sortKey=gv('mvSort'+sec);
-  let rows=_mvData.filter(r=>types[sec].includes(r.movement_type));
-  if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.customer_name+r.invoice_no+r.dc_no+r.waybill_no+r.rdc_no+r.doc_ref+r.remarks||'').toLowerCase().includes(s));
+// Render a section
+function renderMvSec(idx){
+  const cfg=MV_SEC_CFG[idx];
+  const s=(gv('mvSrch'+idx)||'').toLowerCase();
+  const sortKey=gv('mvSort'+idx)||'date_desc';
+  let rows=_mvData.filter(r=>cfg.types.includes(r.movement_type));
+  if(s)rows=rows.filter(r=>((r.product_code||'')+(r.product_desc||'')+(r.customer_name||'')+(r.invoice_no||'')+(r.dc_no||'')+(r.waybill_no||'')+(r.rdc_no||'')+(r.doc_ref||'')+(r.remarks||'')).toLowerCase().includes(s));
   if(sortKey==='date_desc')rows=[...rows].sort((a,b)=>new Date(b.movement_date)-new Date(a.movement_date));
   else if(sortKey==='date_asc')rows=[...rows].sort((a,b)=>new Date(a.movement_date)-new Date(b.movement_date));
   else if(sortKey==='code')rows=[...rows].sort((a,b)=>(a.product_code||'').localeCompare(b.product_code||''));
+  const tbody=g('mvTbl'+idx);
+  if(!tbody)return;
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--text3)">No records</td></tr>`;return;}
 
-  const tbody=g('mvTbl'+sec);
-  if(!rows.length){tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text3)">No records</td></tr>`;return;}
+  const fmtDt=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('en-IN')+' '+dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});};
+  const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
+  const qColor=(q)=>q>0?'var(--green)':'var(--red)';
 
-  if(sec===0){
-    tbody.innerHTML=rows.map(r=>{
-      const dt=new Date(r.movement_date);
-      return `<tr>
-        <td style="font-size:11px;color:var(--text2);white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
-        <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-        <td>${r.product_desc||'—'}</td>
-        <td style="font-weight:700;color:var(--red)">-${Math.abs(r.qty_change)}</td>
-        <td>${r.invoice_no||'—'}</td>
-        <td>${r.invoice_date||'—'}</td>
-        <td>${r.waybill_no||'—'}</td>
-        <td>${r.dc_no||'—'}</td>
-        <td>${r.customer_name||'—'}</td>
-        <td style="font-size:11px;color:var(--text2)">${r.remarks||''}</td>
-      </tr>`;
-    }).join('');
-  } else if(sec===1){
-    tbody.innerHTML=rows.map(r=>{
-      const dt=new Date(r.movement_date);
-      return `<tr>
-        <td style="font-size:11px;color:var(--text2);white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
-        <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-        <td>${r.product_desc||'—'}</td>
-        <td style="font-weight:700;color:var(--amber)">-${Math.abs(r.qty_change)}</td>
-        <td>${r.rdc_no||'—'}</td>
-        <td>${r.waybill_no||'—'}</td>
-        <td>${r.dc_no||'—'}</td>
-        <td>${r.customer_name||'—'}</td>
-        <td>${r.expected_return||'—'}</td>
-        <td style="font-size:11px;color:var(--text2)">${r.remarks||''}</td>
-      </tr>`;
-    }).join('');
-  } else {
-    tbody.innerHTML=rows.map(r=>{
-      const dt=new Date(r.movement_date);
-      const qColor=r.qty_change>0?'var(--green)':'var(--red)';
-      return `<tr>
-        <td style="font-size:11px;color:var(--text2);white-space:nowrap">${dt.toLocaleDateString('en-IN')} ${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
-        <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-        <td>${r.product_desc||'—'}</td>
-        <td style="font-weight:700;color:${qColor}">${r.qty_change>0?'+':''}${r.qty_change}</td>
-        <td>${r.doc_ref||'—'}</td>
-        <td>${r.waybill_no||'—'}</td>
-        <td>${r.dc_no||'—'}</td>
-        <td>${r.customer_name||'—'}</td>
-        <td>${r.expected_return||'—'}</td>
-        <td style="font-size:11px;color:var(--text2)">${r.remarks||''}</td>
-      </tr>`;
-    }).join('');
+  const mkEditBtn=(r)=>`<button class="btn btn-ghost btn-xs" onclick="openEditMvModal('${r.id}')">✏️ Edit</button>`;
+
+  if(idx===0){ // stock_in
+    tbody.innerHTML=rows.map(r=>`<tr>
+      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
+      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+      <td>${r.product_desc||'—'}</td>
+      <td style="color:var(--green);font-weight:700">+${r.qty_change}</td>
+      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
+      <td>${r.invoice_no||'—'}</td><td>${fmtD(r.invoice_date)}</td>
+      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
+      <td style="font-size:12px">${r.remarks||'—'}</td>
+      <td>${mkEditBtn(r)}</td></tr>`).join('');
+  } else if(idx===1||idx===5){ // corrections
+    tbody.innerHTML=rows.map(r=>`<tr>
+      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
+      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+      <td>${r.product_desc||'—'}</td>
+      <td style="color:${qColor(r.qty_change)};font-weight:700">${r.qty_change>0?'+':''}${r.qty_change}</td>
+      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
+      <td colspan="3" style="color:var(--text2);font-size:12px">${r.remarks||'—'}</td>
+      <td>${r.done_by||'—'}</td>
+      <td>${mkEditBtn(r)}</td></tr>`).join('');
+  } else if(idx===2){ // sale
+    tbody.innerHTML=rows.map(r=>`<tr>
+      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
+      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+      <td>${r.product_desc||'—'}</td>
+      <td style="color:var(--red);font-weight:700">${r.qty_change}</td>
+      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
+      <td>${r.customer_name||'—'}</td>
+      <td>${r.invoice_no||'—'}</td><td>${fmtD(r.invoice_date)}</td>
+      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
+      <td style="font-size:12px">${r.remarks||'—'}</td>
+      <td>${mkEditBtn(r)}</td></tr>`).join('');
+  } else if(idx===3){ // test & return
+    tbody.innerHTML=rows.map(r=>`<tr>
+      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
+      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+      <td>${r.product_desc||'—'}</td>
+      <td style="color:var(--amber);font-weight:700">${r.qty_change}</td>
+      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
+      <td>${r.customer_name||'—'}</td>
+      <td>${r.rdc_no||'—'}</td><td>${fmtD(r.invoice_date)}</td>
+      <td>${fmtD(r.expected_return)}</td>
+      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
+      <td style="font-size:12px">${r.remarks||'—'}</td>
+      <td>${mkEditBtn(r)}</td></tr>`).join('');
+  } else if(idx===4){ // others
+    tbody.innerHTML=rows.map(r=>`<tr>
+      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
+      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
+      <td>${r.product_desc||'—'}</td>
+      <td style="color:var(--purple);font-weight:700">${r.qty_change}</td>
+      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
+      <td>${r.customer_name||'—'}</td>
+      <td>${r.doc_ref||'—'}</td>
+      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
+      <td>${fmtD(r.expected_return)}</td>
+      <td style="font-size:12px">${r.remarks||'—'}</td>
+      <td>${mkEditBtn(r)}</td></tr>`).join('');
   }
 }
+
+// Legacy renderMv used in renderAll — just re-renders active section
+function renderMv(idx){ renderMvSec(_mvSecActive); }
 
 // ══════════════════════════════════════════════════════
 // MOVEMENT LOG EXPORTS
 // ══════════════════════════════════════════════════════
-function exportMvExcel(sec){
-  const types=[['sale'],['test_return'],['other','correction']];
-  const titles=['Sales','Test_Return','Others'];
-  const rows=_mvData.filter(r=>types[sec].includes(r.movement_type));
+function exportMvExcel(secIdx){
+  const cfg=MV_SEC_CFG[secIdx];
+  const rows=_mvData.filter(r=>cfg.types.includes(r.movement_type));
   if(!rows.length){notif('No records to export','e');return;}
+  const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'';
   let headers,data;
-  if(sec===0){
-    headers=['Date','Product Code','Description','Qty Change','Invoice No','Invoice Date','Waybill No','DC No','Customer','Remarks'];
-    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.invoice_no,r.invoice_date,r.waybill_no,r.dc_no,r.customer_name,r.remarks])];
-  } else if(sec===1){
-    headers=['Date','Product Code','Description','Qty Change','RDC No','Waybill No','DC No','Customer','Expected Return','Remarks'];
-    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.rdc_no,r.waybill_no,r.dc_no,r.customer_name,r.expected_return,r.remarks])];
+  if(secIdx===0){
+    headers=['Date','Code','Description','Qty Change','Old Qty','New Qty','Invoice No','Invoice Date','Waybill No','DC No','Remarks'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.old_qty,r.new_qty,r.invoice_no,fmtD(r.invoice_date),r.waybill_no,r.dc_no,r.remarks])];
+  } else if(secIdx===1||secIdx===5){
+    headers=['Date','Code','Description','Qty Change','Old Qty','New Qty','Reason/Remarks','By'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.old_qty,r.new_qty,r.remarks,r.done_by])];
+  } else if(secIdx===2){
+    headers=['Date','Code','Description','Qty','Old Qty','New Qty','Customer','Invoice No','Invoice Date','Waybill No','DC No','Remarks'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.old_qty,r.new_qty,r.customer_name,r.invoice_no,fmtD(r.invoice_date),r.waybill_no,r.dc_no,r.remarks])];
+  } else if(secIdx===3){
+    headers=['Date','Code','Description','Qty','Old Qty','New Qty','Customer','RDC No','Shipment Date','Expected Return','Waybill No','DC No','Remarks'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.old_qty,r.new_qty,r.customer_name,r.rdc_no,fmtD(r.invoice_date),fmtD(r.expected_return),r.waybill_no,r.dc_no,r.remarks])];
   } else {
-    headers=['Date','Product Code','Description','Qty Change','Doc Reference','Waybill No','DC No','Customer','Expected Return','Remarks'];
-    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.doc_ref,r.waybill_no,r.dc_no,r.customer_name,r.expected_return,r.remarks])];
+    headers=['Date','Code','Description','Qty','Old Qty','New Qty','Customer/Party','Doc Reference','Waybill No','DC No','Expected Return','Remarks'];
+    data=[headers,...rows.map(r=>[new Date(r.movement_date).toLocaleString('en-IN'),r.product_code,r.product_desc,r.qty_change,r.old_qty,r.new_qty,r.customer_name,r.doc_ref,r.waybill_no,r.dc_no,fmtD(r.expected_return),r.remarks])];
   }
   const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=headers.map(()=>({wch:18}));
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,titles[sec]);
-  XLSX.writeFile(wb,`Visdil_${titles[sec]}_Log_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,cfg.label.replace(/[^\w\s]/g,'').trim());
+  XLSX.writeFile(wb,`Visdil_${cfg.label.replace(/[^\w]/g,'_')}_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
 }
 
-function exportMvPDF(sec){
-  const types=[['sale'],['test_return'],['other','correction']];
-  const titles=['Sales Log','Test & Return Log','Others Log'];
-  const rows=_mvData.filter(r=>types[sec].includes(r.movement_type));
+function exportMvPDF(secIdx){
+  const cfg=MV_SEC_CFG[secIdx];
+  const rows=_mvData.filter(r=>cfg.types.includes(r.movement_type));
   if(!rows.length){notif('No records to export','e');return;}
+  const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
   let headers,trs;
-  if(sec===0){
-    headers=['Date','Code','Description','Qty','Invoice No','Inv Date','Waybill','DC No','Customer','Remarks'];
-    trs=rows.map(r=>`<tr><td>${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="color:#dc2626;font-weight:700">-${Math.abs(r.qty_change)}</td><td>${r.invoice_no||''}</td><td>${r.invoice_date||''}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.customer_name||''}</td><td>${r.remarks||''}</td></tr>`).join('');
-  } else if(sec===1){
-    headers=['Date','Code','Description','Qty','RDC No','Waybill','DC No','Customer','Exp Return','Remarks'];
-    trs=rows.map(r=>`<tr><td>${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="color:#d97706;font-weight:700">-${Math.abs(r.qty_change)}</td><td>${r.rdc_no||''}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.customer_name||''}</td><td>${r.expected_return||''}</td><td>${r.remarks||''}</td></tr>`).join('');
+  if(secIdx===0){
+    headers=['Date','Code','Description','Qty','Old','New','Invoice No','Inv Date','Waybill','DC No','Remarks'];
+    trs=rows.map(r=>`<tr><td>${fmtD(r.movement_date)}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="color:green;font-weight:700">+${r.qty_change}</td><td>${r.old_qty??''}</td><td>${r.new_qty??''}</td><td>${r.invoice_no||''}</td><td>${fmtD(r.invoice_date)}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.remarks||''}</td></tr>`).join('');
+  } else if(secIdx===1||secIdx===5){
+    headers=['Date','Code','Description','Qty Change','Old','New','Reason / Remarks','By'];
+    trs=rows.map(r=>`<tr><td>${fmtD(r.movement_date)}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="font-weight:700">${r.qty_change>0?'+':''}${r.qty_change}</td><td>${r.old_qty??''}</td><td>${r.new_qty??''}</td><td>${r.remarks||''}</td><td>${r.done_by||''}</td></tr>`).join('');
+  } else if(secIdx===2){
+    headers=['Date','Code','Description','Qty','Old','New','Customer','Invoice No','Inv Date','Waybill','DC No','Remarks'];
+    trs=rows.map(r=>`<tr><td>${fmtD(r.movement_date)}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="color:#dc2626;font-weight:700">${r.qty_change}</td><td>${r.old_qty??''}</td><td>${r.new_qty??''}</td><td>${r.customer_name||''}</td><td>${r.invoice_no||''}</td><td>${fmtD(r.invoice_date)}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.remarks||''}</td></tr>`).join('');
+  } else if(secIdx===3){
+    headers=['Date','Code','Description','Qty','Old','New','Customer','RDC No','Shipment','Exp Return','Waybill','DC No'];
+    trs=rows.map(r=>`<tr><td>${fmtD(r.movement_date)}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="color:#d97706;font-weight:700">${r.qty_change}</td><td>${r.old_qty??''}</td><td>${r.new_qty??''}</td><td>${r.customer_name||''}</td><td>${r.rdc_no||''}</td><td>${fmtD(r.invoice_date)}</td><td>${fmtD(r.expected_return)}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td></tr>`).join('');
   } else {
-    headers=['Date','Code','Description','Qty','Doc Ref','Waybill','DC No','Customer','Exp Return','Remarks'];
-    trs=rows.map(r=>`<tr><td>${new Date(r.movement_date).toLocaleDateString('en-IN')}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="font-weight:700">${r.qty_change>0?'+':''}${r.qty_change}</td><td>${r.doc_ref||''}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${r.customer_name||''}</td><td>${r.expected_return||''}</td><td>${r.remarks||''}</td></tr>`).join('');
+    headers=['Date','Code','Description','Qty','Old','New','Customer/Party','Doc Ref','Waybill','DC No','Exp Return','Remarks'];
+    trs=rows.map(r=>`<tr><td>${fmtD(r.movement_date)}</td><td>${r.product_code||''}</td><td>${r.product_desc||''}</td><td style="font-weight:700">${r.qty_change>0?'+':''}${r.qty_change}</td><td>${r.old_qty??''}</td><td>${r.new_qty??''}</td><td>${r.customer_name||''}</td><td>${r.doc_ref||''}</td><td>${r.waybill_no||''}</td><td>${r.dc_no||''}</td><td>${fmtD(r.expected_return)}</td><td>${r.remarks||''}</td></tr>`).join('');
   }
-  printPage(titles[sec],`<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>`);
+  printPage(cfg.label,`<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table><div class="sum">Total records: ${rows.length}</div>`);
 }
 
 // ══════════════════════════════════════════════════════
-// STOCK MOVEMENT MODAL — multi-step
+// EDIT MOVEMENT LOG MODAL
+// ══════════════════════════════════════════════════════
+let _editMvRow=null;
+function openEditMvModal(id){
+  _editMvRow=_mvData.find(r=>r.id===id);
+  if(!_editMvRow)return;
+  const r=_editMvRow;
+  const fmtDL=d=>d?d.slice(0,10):'';
+  const fmtDTL=d=>d?new Date(d).toISOString().slice(0,16):'';
+  let fields=`
+    <div style="background:var(--bg3);border-radius:var(--r2);padding:9px 12px;margin-bottom:12px;font-size:12px">
+      <strong>${r.product_code}</strong> — ${r.product_desc} &nbsp;|&nbsp; Type: <span style="color:var(--accent)">${r.movement_type}</span><br>
+      <span style="color:var(--text2)">Qty change: ${r.qty_change>0?'+':''}${r.qty_change} &nbsp;|&nbsp; ${r.old_qty} → ${r.new_qty}</span>
+    </div>
+    <div class="fg2"><label>Movement Date</label><input type="datetime-local" id="emvDate" value="${fmtDTL(r.movement_date)}"/></div>`;
+  if(r.movement_type==='stock_in'){
+    fields+=`
+    <div class="frow"><div class="fg2"><label>Invoice No</label><input type="text" id="emvInvNo" value="${r.invoice_no||''}"/></div><div class="fg2"><label>Invoice Date</label><input type="date" id="emvInvDate" value="${fmtDL(r.invoice_date)}"/></div></div>
+    <div class="frow"><div class="fg2"><label>Waybill No</label><input type="text" id="emvWaybill" value="${r.waybill_no||''}"/></div><div class="fg2"><label>DC No</label><input type="text" id="emvDcNo" value="${r.dc_no||''}"/></div></div>`;
+  } else if(r.movement_type==='sale'){
+    fields+=`
+    <div class="frow"><div class="fg2"><label>Customer Name</label><input type="text" id="emvCust" value="${r.customer_name||''}"/></div><div class="fg2"><label>Invoice No</label><input type="text" id="emvInvNo" value="${r.invoice_no||''}"/></div></div>
+    <div class="frow"><div class="fg2"><label>Invoice Date</label><input type="date" id="emvInvDate" value="${fmtDL(r.invoice_date)}"/></div><div class="fg2"><label>Waybill No</label><input type="text" id="emvWaybill" value="${r.waybill_no||''}"/></div></div>
+    <div class="fg2"><label>DC No</label><input type="text" id="emvDcNo" value="${r.dc_no||''}"/></div>`;
+  } else if(r.movement_type==='test_return'){
+    fields+=`
+    <div class="frow"><div class="fg2"><label>Customer Name</label><input type="text" id="emvCust" value="${r.customer_name||''}"/></div><div class="fg2"><label>RDC No</label><input type="text" id="emvRdcNo" value="${r.rdc_no||''}"/></div></div>
+    <div class="frow"><div class="fg2"><label>Waybill No</label><input type="text" id="emvWaybill" value="${r.waybill_no||''}"/></div><div class="fg2"><label>DC No</label><input type="text" id="emvDcNo" value="${r.dc_no||''}"/></div></div>
+    <div class="frow"><div class="fg2"><label>Shipment Date</label><input type="date" id="emvInvDate" value="${fmtDL(r.invoice_date)}"/></div><div class="fg2"><label>Expected Return</label><input type="date" id="emvExpReturn" value="${fmtDL(r.expected_return)}"/></div></div>`;
+  } else if(r.movement_type==='other'){
+    fields+=`
+    <div class="frow"><div class="fg2"><label>Customer/Party</label><input type="text" id="emvCust" value="${r.customer_name||''}"/></div><div class="fg2"><label>Doc Reference</label><input type="text" id="emvDocRef" value="${r.doc_ref||''}"/></div></div>
+    <div class="frow"><div class="fg2"><label>Waybill No</label><input type="text" id="emvWaybill" value="${r.waybill_no||''}"/></div><div class="fg2"><label>DC No</label><input type="text" id="emvDcNo" value="${r.dc_no||''}"/></div></div>
+    <div class="fg2"><label>Expected Return</label><input type="date" id="emvExpReturn" value="${fmtDL(r.expected_return)}"/></div>`;
+  }
+  fields+=`<div class="fg2"><label>Remarks</label><input type="text" id="emvRemarks" value="${r.remarks||''}"/></div>
+    <div class="fg2" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2);padding:9px 11px">
+      <label style="color:var(--amber)">Edit Reason * (required for all edits)</label>
+      <textarea id="emvEditReason" style="min-height:55px" placeholder="Why are you editing this entry?"></textarea>
+    </div>`;
+  g('emvFormBody').innerHTML=fields;
+  showO('editMvModal');
+}
+
+async function saveEditMv(){
+  if(!_editMvRow)return;
+  const reason=gv('emvEditReason').trim();
+  if(!reason){notif('Edit reason is required','e');return;}
+  setBtnLoad('saveEmvBtn','Saving...');
+  try{
+    const r=_editMvRow;
+    const updates={
+      movement_date:gv('emvDate')||r.movement_date,
+      invoice_no:gv('emvInvNo')||r.invoice_no||null,
+      invoice_date:gv('emvInvDate')||r.invoice_date||null,
+      waybill_no:gv('emvWaybill')||r.waybill_no||null,
+      dc_no:gv('emvDcNo')||r.dc_no||null,
+      customer_name:gv('emvCust')||r.customer_name||null,
+      rdc_no:gv('emvRdcNo')||r.rdc_no||null,
+      expected_return:gv('emvExpReturn')||r.expected_return||null,
+      doc_ref:gv('emvDocRef')||r.doc_ref||null,
+      remarks:gv('emvRemarks')||null,
+    };
+    const{error}=await sb.from('movement_log').update(updates).eq('id',r.id);
+    if(error)throw error;
+    // Log the edit in activity log
+    await addLog('Movement Log Edited',r.product_desc,`Edited ${r.movement_type} entry. Reason: ${reason}`,'','');
+    await loadMovementLog();
+    closeM('editMvModal');
+    renderMvSec(_mvSecActive);
+    notif('Movement log updated!','s');
+  }catch(e){notif('Save failed: '+e.message,'e');}
+  finally{setBtnLoad('saveEmvBtn',null,'Save Changes');}
+}
+
+// ══════════════════════════════════════════════════════
+// STOCK MOVEMENT MODAL — multi-step with inward/outward
 // ══════════════════════════════════════════════════════
 function openStockMvModal(id){
   _smvProd=products.find(x=>x.id===id);
@@ -1753,7 +1966,7 @@ function openStockMvModal(id){
   _smvOldQty=_smvProd.qty;
   _smvNewQty=0;_smvReason=null;
   g('stockMvTitle').textContent=`Update Stock — ${_smvProd.code}`;
-  g('smvProdInfo').innerHTML=`<strong>${_smvProd.short_desc}</strong> <span style="color:var(--text2)">${_smvProd.brand}${_smvProd.variant?' · '+_smvProd.variant:''}</span><br><span style="color:var(--text2);font-size:12px">Current Stock: <strong style="color:var(--accent)">${_smvOldQty} units</strong></span>`;
+  g('smvProdInfo').innerHTML=`<strong>${_smvProd.short_desc}</strong> <span style="color:var(--text2)">${_smvProd.brand||''}${_smvProd.variant?' · '+_smvProd.variant:''}</span><br><span style="color:var(--text2);font-size:12px">Current Stock: <strong style="color:var(--accent)">${_smvOldQty} units</strong></span>`;
   sv('smvQty','');
   sv('smvDate',new Date().toISOString().slice(0,16));
   g('smvStep1').style.display='';g('smvStep2').style.display='none';g('smvStep3').style.display='none';
@@ -1766,23 +1979,33 @@ function smvNext(){
   if(!gv('smvDate')){notif('Enter movement date','e');return;}
   _smvNewQty=nq;
   const diff=nq-_smvOldQty;
-  g('smvChangeInfo').innerHTML=`Changing from <strong>${_smvOldQty}</strong> → <strong>${nq}</strong> <span style="color:${diff>0?'var(--green)':'var(--red)'}">(${diff>0?'+':''}${diff})</span>`;
-  // Build reason buttons based on direction
+  if(diff===0){notif('Quantity unchanged','e');return;}
+  g('smvChangeInfo').innerHTML=`<strong>${_smvOldQty}</strong> → <strong>${nq}</strong> <span style="color:${diff>0?'var(--green)':'var(--red)'}">(${diff>0?'+':''}${diff})</span>`;
   let btns='';
   if(diff>0){
     btns=`
-      <button class="btn btn-success btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('stock_in')">📥 New Stock Entry<br><small style="font-weight:400;opacity:.7">New purchase / goods received</small></button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('correction_up')">✏️ Data Entry Correction<br><small style="font-weight:400;opacity:.7">Fixing a mistake in qty</small></button>`;
-  } else if(diff<0){
-    btns=`
-      <button class="btn btn-danger btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('sale')">💰 Sale<br><small style="font-weight:400;opacity:.7">Goods sold to customer</small></button>
-      <button class="btn btn-amber btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('test_return')">🔄 Test & Return<br><small style="font-weight:400;opacity:.7">Sent for testing / demo</small></button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('other')">📋 Other Movement<br><small style="font-weight:400;opacity:.7">Transfer / damage / write-off</small></button>
-      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px" onclick="smvSelectReason('correction_down')">✏️ Data Entry Correction<br><small style="font-weight:400;opacity:.7">Fixing a mistake in qty</small></button>`;
+      <button class="btn btn-success btn-sm" style="justify-content:flex-start;padding:10px 14px;text-align:left" onclick="smvSelectReason('stock_in')">
+        <div>📥 New Stock Entry</div><div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">New purchase / goods received</div>
+      </button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px;text-align:left" onclick="smvSelectReason('correction_up')">
+        <div>✏️ Data Entry Correction</div><div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">Fixing a counting or entry mistake</div>
+      </button>`;
   } else {
-    notif('Quantity is unchanged','e');return;
+    btns=`
+      <button class="btn btn-danger btn-sm" style="justify-content:flex-start;padding:10px 14px;text-align:left" onclick="smvSelectReason('sale')">
+        <div>💰 Sale</div><div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">Goods sold to customer</div>
+      </button>
+      <button class="btn btn-amber btn-sm" style="justify-content:flex-start;padding:10px 14px;text-align:left" onclick="smvSelectReason('test_return')">
+        <div>🔄 Test & Return</div><div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">Sent for testing or demo, expected back</div>
+      </button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px;text-align:left" onclick="smvSelectReason('other')">
+        <div>📋 Other Movement</div><div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">Transfer, damage, write-off, etc.</div>
+      </button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;padding:10px 14px;text-align:left" onclick="smvSelectReason('correction_down')">
+        <div>✏️ Data Entry Correction</div><div style="font-size:11px;font-weight:400;opacity:.75;margin-top:2px">Fixing a counting or entry mistake</div>
+      </button>`;
   }
-  g('smvReasonBtns').innerHTML=`<div style="display:flex;flex-direction:column;gap:7px">${btns}<button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="g('smvStep2').style.display='none';g('smvStep1').style.display=''">← Back</button></div>`;
+  g('smvReasonBtns').innerHTML=`<div style="display:flex;flex-direction:column;gap:7px">${btns}<button class="btn btn-ghost btn-xs" style="margin-top:4px;align-self:flex-start" onclick="g('smvStep2').style.display='none';g('smvStep1').style.display=''">← Back</button></div>`;
   g('smvStep1').style.display='none';g('smvStep2').style.display='';
 }
 
@@ -1792,34 +2015,33 @@ function smvSelectReason(reason){
   _smvReason=reason;
   const labels={stock_in:'📥 New Stock Entry',sale:'💰 Sale',test_return:'🔄 Test & Return',other:'📋 Other Movement',correction_up:'✏️ Data Entry Correction (Increase)',correction_down:'✏️ Data Entry Correction (Decrease)'};
   g('smvReasonLabel').textContent=labels[reason]||reason;
-  const dateVal=gv('smvDate');
-  // Build form per reason
+  const d=gv('smvDate').slice(0,10);
   let form='';
   if(reason==='stock_in'){
     form=`
-      <div class="frow"><div class="fg2"><label>Invoice Number</label><input type="text" id="smvInvNo" placeholder="Optional"/></div><div class="fg2"><label>Invoice Date</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div></div>
-      <div class="frow"><div class="fg2"><label>DC / Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div><div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div></div>
-      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:50px" placeholder="Optional remarks"></textarea></div>`;
+      <div class="frow"><div class="fg2"><label>Invoice Number</label><input type="text" id="smvInvNo" placeholder="Optional"/></div><div class="fg2"><label>Invoice Date</label><input type="date" id="smvInvDate" value="${d}"/></div></div>
+      <div class="frow"><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div><div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div></div>
+      <div class="fg2"><label>Supplier / Remarks</label><textarea id="smvRemarks" style="min-height:50px" placeholder="Optional"></textarea></div>`;
   } else if(reason==='sale'){
     form=`
       <div class="frow"><div class="fg2"><label>Customer Name *</label><input type="text" id="smvCust" placeholder="Customer name"/></div><div class="fg2"><label>Invoice Number *</label><input type="text" id="smvInvNo" placeholder="Invoice number"/></div></div>
-      <div class="frow"><div class="fg2"><label>Invoice Date</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div></div>
+      <div class="frow"><div class="fg2"><label>Invoice Date</label><input type="date" id="smvInvDate" value="${d}"/></div><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div></div>
       <div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div>
-      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:50px" placeholder="Optional"></textarea></div>`;
+      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:45px" placeholder="Optional"></textarea></div>`;
   } else if(reason==='test_return'){
     form=`
-      <div class="frow"><div class="fg2"><label>Customer Name *</label><input type="text" id="smvCust" placeholder="Customer / company name"/></div><div class="fg2"><label>RDC Number</label><input type="text" id="smvRdcNo" placeholder="Return DC number"/></div></div>
+      <div class="frow"><div class="fg2"><label>Customer Name *</label><input type="text" id="smvCust" placeholder="Customer or company"/></div><div class="fg2"><label>RDC Number</label><input type="text" id="smvRdcNo" placeholder="Return DC number"/></div></div>
+      <div class="frow"><div class="fg2"><label>Date of Shipment</label><input type="date" id="smvInvDate" value="${d}"/></div><div class="fg2"><label>Expected Return Date</label><input type="date" id="smvExpReturn"/></div></div>
       <div class="frow"><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div><div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div></div>
-      <div class="frow"><div class="fg2"><label>Date of Shipment</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div><div class="fg2"><label>Expected Return Date</label><input type="date" id="smvExpReturn"/></div></div>
-      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:50px" placeholder="Optional"></textarea></div>`;
+      <div class="fg2"><label>Remarks</label><textarea id="smvRemarks" style="min-height:45px" placeholder="Optional"></textarea></div>`;
   } else if(reason==='other'){
     form=`
-      <div class="frow"><div class="fg2"><label>Customer / Party Name</label><input type="text" id="smvCust" placeholder="Optional"/></div><div class="fg2"><label>Document Reference</label><input type="text" id="smvDocRef" placeholder="Doc / support ref number"/></div></div>
+      <div class="frow"><div class="fg2"><label>Customer / Party Name</label><input type="text" id="smvCust" placeholder="Optional"/></div><div class="fg2"><label>Document Reference *</label><input type="text" id="smvDocRef" placeholder="Reference document number"/></div></div>
       <div class="frow"><div class="fg2"><label>Waybill Number</label><input type="text" id="smvWaybill" placeholder="Optional"/></div><div class="fg2"><label>DC Number</label><input type="text" id="smvDcNo" placeholder="Optional"/></div></div>
-      <div class="frow"><div class="fg2"><label>Movement Date</label><input type="date" id="smvInvDate" value="${dateVal.slice(0,10)}"/></div><div class="fg2"><label>Expected Return Date</label><input type="date" id="smvExpReturn" placeholder="If applicable"/></div></div>
-      <div class="fg2"><label>Remarks *</label><textarea id="smvRemarks" style="min-height:60px" placeholder="Describe the reason for movement"></textarea></div>`;
-  } else { // correction
-    form=`<div class="fg2"><label>Reason / Remarks *</label><textarea id="smvRemarks" style="min-height:80px" placeholder="Describe why the quantity is being corrected (e.g. counting error, system mistake)"></textarea></div>`;
+      <div class="frow"><div class="fg2"><label>Movement Date</label><input type="date" id="smvInvDate" value="${d}"/></div><div class="fg2"><label>Expected Return Date</label><input type="date" id="smvExpReturn" placeholder="If applicable"/></div></div>
+      <div class="fg2"><label>Remarks *</label><textarea id="smvRemarks" style="min-height:55px" placeholder="Describe the purpose of this movement"></textarea></div>`;
+  } else {
+    form=`<div class="fg2"><label>Correction Reason *</label><textarea id="smvRemarks" style="min-height:80px" placeholder="Describe why the quantity is being corrected (e.g. counting error, system mistake, physical verification)"></textarea></div>`;
   }
   g('smvForm').innerHTML=form;
   g('smvStep2').style.display='none';g('smvStep3').style.display='';
@@ -1829,59 +2051,53 @@ async function smvSave(){
   if(!_smvProd||!_smvReason)return;
   const diff=_smvNewQty-_smvOldQty;
   const movDate=gv('smvDate')||new Date().toISOString();
-  // Validation
   if(_smvReason==='sale'){
-    if(!gv('smvCust').trim()){notif('Customer name is required for sale','e');return;}
-    if(!gv('smvInvNo').trim()){notif('Invoice number is required for sale','e');return;}
+    if(!(gv('smvCust')||'').trim()){notif('Customer name required for sale','e');return;}
+    if(!(gv('smvInvNo')||'').trim()){notif('Invoice number required for sale','e');return;}
   }
-  if(_smvReason==='test_return'&&!gv('smvCust').trim()){notif('Customer name is required','e');return;}
-  if((_smvReason==='other'||_smvReason.startsWith('correction'))&&!gv('smvRemarks').trim()){notif('Remarks are required','e');return;}
+  if(_smvReason==='test_return'&&!(gv('smvCust')||'').trim()){notif('Customer name required','e');return;}
+  if(_smvReason==='other'&&!(gv('smvDocRef')||'').trim()){notif('Document reference required','e');return;}
+  if((_smvReason==='correction_up'||_smvReason==='correction_down')&&!(gv('smvRemarks')||'').trim()){notif('Correction reason required','e');return;}
 
   setBtnLoad('smvSaveBtn','Saving...');
   try{
-    // 1. Update product qty
     const{error:qErr}=await sb.from('products').update({qty:_smvNewQty,updated_at:new Date().toISOString()}).eq('id',_smvProd.id);
     if(qErr)throw qErr;
-
-    // 2. Determine movement_type for log
-    const mvTypeMap={stock_in:'stock_in',sale:'sale',test_return:'test_return',other:'other',correction_up:'correction',correction_down:'correction'};
-    const mvType=mvTypeMap[_smvReason]||'other';
-
-    // 3. Insert movement log
+    const mvTypeMap={stock_in:'stock_in',sale:'sale',test_return:'test_return',other:'other',correction_up:'correction_up',correction_down:'correction_down'};
     const mvRow={
       product_id:_smvProd.id,product_code:_smvProd.code,product_desc:_smvProd.short_desc,
       qty_change:diff,old_qty:_smvOldQty,new_qty:_smvNewQty,
-      movement_type:mvType,
+      movement_type:mvTypeMap[_smvReason],
       movement_date:movDate,
-      invoice_no:gv('smvInvNo')||null,
-      invoice_date:gv('smvInvDate')||null,
-      waybill_no:gv('smvWaybill')||null,
-      dc_no:gv('smvDcNo')||null,
-      customer_name:gv('smvCust')||null,
-      rdc_no:gv('smvRdcNo')||null,
-      expected_return:gv('smvExpReturn')||null,
-      doc_ref:gv('smvDocRef')||null,
-      remarks:gv('smvRemarks')||null,
+      invoice_no:(gv('smvInvNo')||'').trim()||null,
+      invoice_date:(gv('smvInvDate')||'').trim()||null,
+      waybill_no:(gv('smvWaybill')||'').trim()||null,
+      dc_no:(gv('smvDcNo')||'').trim()||null,
+      customer_name:(gv('smvCust')||'').trim()||null,
+      rdc_no:(gv('smvRdcNo')||'').trim()||null,
+      expected_return:(gv('smvExpReturn')||'').trim()||null,
+      doc_ref:(gv('smvDocRef')||'').trim()||null,
+      remarks:(gv('smvRemarks')||'').trim()||null,
       done_by:cu.name
     };
     const{error:mvErr}=await sb.from('movement_log').insert([mvRow]);
     if(mvErr)throw mvErr;
-
-    // 4. Add to activity log
-    const actionLabels={stock_in:'Stock In',sale:'Stock Out — Sale',test_return:'Stock Out — Test/Return',other:'Stock Movement',correction:'Stock Correction'};
-    await addLog('Stock Updated',_smvProd.short_desc,`${actionLabels[mvType]} | ${_smvOldQty} → ${_smvNewQty}`,_smvOldQty,_smvNewQty);
-
-    // 5. Refresh local data
+    const actionLabels={stock_in:'Stock In',sale:'Sale',test_return:'Test & Return',other:'Movement',correction_up:'Correction (Up)',correction_down:'Correction (Down)'};
+    await addLog('Stock Updated',_smvProd.short_desc,`${actionLabels[_smvReason]} | ${_smvOldQty} → ${_smvNewQty}`,_smvOldQty,_smvNewQty);
     const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
     if(pd)products=pd;
     await loadMovementLog();
-
-    closeM('stockMvModal');
-    renderAll();
-    renderMv(_mvSecActive);
+    closeM('stockMvModal');renderAll();
     notif(`Stock updated: ${_smvProd.code} → ${_smvNewQty} units`,'s');
   }catch(e){notif('Save failed: '+e.message,'e');}
   finally{setBtnLoad('smvSaveBtn',null,'Save');}
+}
+
+// ══════════════════════════════════════════════════════
+// PRODUCT VIEW — show stock-in history
+// ══════════════════════════════════════════════════════
+function getProductInwardHistory(productId){
+  return _mvData.filter(r=>r.product_id===productId&&r.movement_type==='stock_in').sort((a,b)=>new Date(b.movement_date)-new Date(a.movement_date));
 }
 
 // ══════════════════════════════════════════════════════
