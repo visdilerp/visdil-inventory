@@ -424,6 +424,12 @@ th.col-drop-right{border-right:2px solid var(--accent)}
             <input class="srch" id="mvSrch0" placeholder="Search stock-in entries..." oninput="renderMvSec(0)"/>
             <select class="flt" id="mvSort0" onchange="renderMvSec(0)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
           </div>
+          <!-- Multi-select action bar -->
+          <div id="mvActionBar0" style="display:none;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:var(--r2);padding:7px 12px;margin:6px 12px 0;align-items:center;gap:10px">
+            <span id="mvSelCount0" style="font-size:13px;color:var(--accent);font-weight:600">0 selected</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedMv(0)">🗑 Delete Selected</button>
+            <button class="btn btn-ghost btn-xs" onclick="_mvSelSet.clear();renderMvSec(0)">✕ Clear</button>
+          </div>
           <div class="ts"><table><thead id="mvThead0"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Invoice No</th><th>Invoice Date</th><th>Waybill No</th><th>DC No</th><th>Supplier/Remarks</th></tr></thead><tbody id="mvTbl0"></tbody></table></div>
         </div>
       </div>
@@ -439,6 +445,12 @@ th.col-drop-right{border-right:2px solid var(--accent)}
           <div class="tb">
             <input class="srch" id="mvSrch1" placeholder="Search corrections..." oninput="renderMvSec(1)"/>
             <select class="flt" id="mvSort1" onchange="renderMvSec(1)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <!-- Multi-select action bar -->
+          <div id="mvActionBar1" style="display:none;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:var(--r2);padding:7px 12px;margin:6px 12px 0;align-items:center;gap:10px">
+            <span id="mvSelCount1" style="font-size:13px;color:var(--accent);font-weight:600">0 selected</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedMv(1)">🗑 Delete Selected</button>
+            <button class="btn btn-ghost btn-xs" onclick="_mvSelSet.clear();renderMvSec(1)">✕ Clear</button>
           </div>
           <div class="ts"><table><thead id="mvThead1"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Reason / Remarks</th><th>By</th></tr></thead><tbody id="mvTbl1"></tbody></table></div>
         </div>
@@ -467,6 +479,12 @@ th.col-drop-right{border-right:2px solid var(--accent)}
             <input class="srch" id="mvSrch2" placeholder="Search sales..." oninput="renderMvSec(2)"/>
             <select class="flt" id="mvSort2" onchange="renderMvSec(2)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
           </div>
+          <!-- Multi-select action bar -->
+          <div id="mvActionBar2" style="display:none;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:var(--r2);padding:7px 12px;margin:6px 12px 0;align-items:center;gap:10px">
+            <span id="mvSelCount2" style="font-size:13px;color:var(--accent);font-weight:600">0 selected</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedMv(2)">🗑 Delete Selected</button>
+            <button class="btn btn-ghost btn-xs" onclick="_mvSelSet.clear();renderMvSec(2)">✕ Clear</button>
+          </div>
           <div class="ts"><table><thead id="mvThead2"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Customer</th><th>Invoice No</th><th>Invoice Date</th><th>Waybill No</th><th>DC No</th><th>Remarks</th></tr></thead><tbody id="mvTbl2"></tbody></table></div>
         </div>
       </div>
@@ -482,6 +500,12 @@ th.col-drop-right{border-right:2px solid var(--accent)}
           <div class="tb">
             <input class="srch" id="mvSrch3" placeholder="Search test & return..." oninput="renderMvSec(3)"/>
             <select class="flt" id="mvSort3" onchange="renderMvSec(3)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <!-- Multi-select action bar -->
+          <div id="mvActionBar3" style="display:none;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:var(--r2);padding:7px 12px;margin:6px 12px 0;align-items:center;gap:10px">
+            <span id="mvSelCount3" style="font-size:13px;color:var(--accent);font-weight:600">0 selected</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedMv(3)">🗑 Delete Selected</button>
+            <button class="btn btn-ghost btn-xs" onclick="_mvSelSet.clear();renderMvSec(3)">✕ Clear</button>
           </div>
           <div class="ts"><table><thead id="mvThead3"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Customer</th><th>RDC No</th><th>Shipment Date</th><th>Expected Return</th><th>Waybill No</th><th>DC No</th><th>Remarks</th></tr></thead><tbody id="mvTbl3"></tbody></table></div>
         </div>
@@ -499,6 +523,12 @@ th.col-drop-right{border-right:2px solid var(--accent)}
             <input class="srch" id="mvSrch4" placeholder="Search others..." oninput="renderMvSec(4)"/>
             <select class="flt" id="mvSort4" onchange="renderMvSec(4)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
           </div>
+          <!-- Multi-select action bar -->
+          <div id="mvActionBar4" style="display:none;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:var(--r2);padding:7px 12px;margin:6px 12px 0;align-items:center;gap:10px">
+            <span id="mvSelCount4" style="font-size:13px;color:var(--accent);font-weight:600">0 selected</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedMv(4)">🗑 Delete Selected</button>
+            <button class="btn btn-ghost btn-xs" onclick="_mvSelSet.clear();renderMvSec(4)">✕ Clear</button>
+          </div>
           <div class="ts"><table><thead id="mvThead4"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Customer/Party</th><th>Doc Reference</th><th>Waybill No</th><th>DC No</th><th>Expected Return</th><th>Remarks</th></tr></thead><tbody id="mvTbl4"></tbody></table></div>
         </div>
       </div>
@@ -514,6 +544,12 @@ th.col-drop-right{border-right:2px solid var(--accent)}
           <div class="tb">
             <input class="srch" id="mvSrch5" placeholder="Search corrections..." oninput="renderMvSec(5)"/>
             <select class="flt" id="mvSort5" onchange="renderMvSec(5)"><option value="">Default</option><option value="date_desc">Date ↓</option><option value="date_asc">Date ↑</option><option value="code">Code A-Z</option></select>
+          </div>
+          <!-- Multi-select action bar -->
+          <div id="mvActionBar5" style="display:none;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);border-radius:var(--r2);padding:7px 12px;margin:6px 12px 0;align-items:center;gap:10px">
+            <span id="mvSelCount5" style="font-size:13px;color:var(--accent);font-weight:600">0 selected</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedMv(5)">🗑 Delete Selected</button>
+            <button class="btn btn-ghost btn-xs" onclick="_mvSelSet.clear();renderMvSec(5)">✕ Clear</button>
           </div>
           <div class="ts"><table><thead id="mvThead5"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Reason / Remarks</th><th>By</th></tr></thead><tbody id="mvTbl5"></tbody></table></div>
         </div>
@@ -1777,6 +1813,8 @@ function notif(msg,type='i'){
 // ══════════════════════════════════════════════════════
 let _mvData=[];
 let _mvDataFiltered=[];
+let _mvSelSet=new Set();   // selected row IDs for multi-select
+let _mvSortState={col:null,dir:1,sec:-1}; // sortable column state
 let _mvDirActive=0;   // 0=inward, 1=outward
 let _mvSecActive=0;   // 0-5 section index
 let _smvProd=null, _smvOldQty=0, _smvNewQty=0, _smvReason=null;
@@ -1833,89 +1871,169 @@ function showMvSec(idx){
 }
 
 // Render a section
+// Column definitions per section for sortable headers
+const MV_COL_DEFS={
+  0:[{k:'movement_date',l:'Date'},{k:'product_code',l:'Code'},{k:'product_desc',l:'Description'},{k:'qty_change',l:'Qty'},{k:'old_qty',l:'Old'},{k:'new_qty',l:'New'},{k:'invoice_no',l:'Invoice No'},{k:'invoice_date',l:'Inv Date'},{k:'waybill_no',l:'Waybill'},{k:'dc_no',l:'DC No'},{k:'remarks',l:'Remarks'}],
+  1:[{k:'movement_date',l:'Date'},{k:'product_code',l:'Code'},{k:'product_desc',l:'Description'},{k:'qty_change',l:'Qty'},{k:'old_qty',l:'Old'},{k:'new_qty',l:'New'},{k:'remarks',l:'Remarks'},{k:'done_by',l:'By'}],
+  2:[{k:'movement_date',l:'Date'},{k:'product_code',l:'Code'},{k:'product_desc',l:'Description'},{k:'qty_change',l:'Qty'},{k:'old_qty',l:'Old'},{k:'new_qty',l:'New'},{k:'customer_name',l:'Customer'},{k:'invoice_no',l:'Invoice No'},{k:'invoice_date',l:'Inv Date'},{k:'waybill_no',l:'Waybill'},{k:'dc_no',l:'DC No'},{k:'remarks',l:'Remarks'}],
+  3:[{k:'movement_date',l:'Date'},{k:'product_code',l:'Code'},{k:'product_desc',l:'Description'},{k:'qty_change',l:'Qty'},{k:'old_qty',l:'Old'},{k:'new_qty',l:'New'},{k:'customer_name',l:'Customer'},{k:'rdc_no',l:'RDC No'},{k:'invoice_date',l:'Shipment'},{k:'expected_return',l:'Exp Return'},{k:'waybill_no',l:'Waybill'},{k:'dc_no',l:'DC No'},{k:'remarks',l:'Remarks'}],
+  4:[{k:'movement_date',l:'Date'},{k:'product_code',l:'Code'},{k:'product_desc',l:'Description'},{k:'qty_change',l:'Qty'},{k:'old_qty',l:'Old'},{k:'new_qty',l:'New'},{k:'customer_name',l:'Customer'},{k:'doc_ref',l:'Doc Ref'},{k:'waybill_no',l:'Waybill'},{k:'dc_no',l:'DC No'},{k:'expected_return',l:'Exp Return'},{k:'remarks',l:'Remarks'}],
+  5:[{k:'movement_date',l:'Date'},{k:'product_code',l:'Code'},{k:'product_desc',l:'Description'},{k:'qty_change',l:'Qty'},{k:'old_qty',l:'Old'},{k:'new_qty',l:'New'},{k:'remarks',l:'Remarks'},{k:'done_by',l:'By'}],
+};
+
+function sortMvCol(sec,col){
+  if(_mvSortState.sec===sec&&_mvSortState.col===col){_mvSortState.dir*=-1;}
+  else{_mvSortState={col,dir:1,sec};}
+  renderMvSec(sec);
+}
+
 function renderMvSec(idx){
   const cfg=MV_SEC_CFG[idx];
   const s=(gv('mvSrch'+idx)||'').toLowerCase();
-  const sortKey=gv('mvSort'+idx)||'date_desc';
   const src=(_mvDataFiltered&&_mvDataFiltered.length?_mvDataFiltered:_mvData);
   let rows=src.filter(r=>cfg.types.includes(r.movement_type));
   if(s)rows=rows.filter(r=>((r.product_code||'')+(r.product_desc||'')+(r.customer_name||'')+(r.invoice_no||'')+(r.dc_no||'')+(r.waybill_no||'')+(r.rdc_no||'')+(r.doc_ref||'')+(r.remarks||'')).toLowerCase().includes(s));
-  if(sortKey==='date_desc')rows=[...rows].sort((a,b)=>new Date(b.movement_date)-new Date(a.movement_date));
-  else if(sortKey==='date_asc')rows=[...rows].sort((a,b)=>new Date(a.movement_date)-new Date(b.movement_date));
-  else if(sortKey==='code')rows=[...rows].sort((a,b)=>(a.product_code||'').localeCompare(b.product_code||''));
+
+  // Column sort
+  if(_mvSortState.sec===idx&&_mvSortState.col){
+    const col=_mvSortState.col,dir=_mvSortState.dir;
+    rows=[...rows].sort((a,b)=>{
+      let av=a[col]??'',bv=b[col]??'';
+      if(col==='movement_date'||col==='invoice_date'||col==='expected_return'){
+        av=av?new Date(av).getTime():0;bv=bv?new Date(bv).getTime():0;
+        return dir*(av-bv);
+      }
+      if(typeof av==='number'||col==='qty_change'||col==='old_qty'||col==='new_qty'){
+        return dir*((parseFloat(av)||0)-(parseFloat(bv)||0));
+      }
+      return dir*String(av).localeCompare(String(bv));
+    });
+  } else {
+    rows=[...rows].sort((a,b)=>new Date(b.movement_date)-new Date(a.movement_date));
+  }
+
+  const thead=g('mvThead'+idx);
   const tbody=g('mvTbl'+idx);
   if(!tbody)return;
-  if(!rows.length){tbody.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--text3)">No records</td></tr>`;return;}
+
+  // Build sortable thead
+  const cols=MV_COL_DEFS[idx]||MV_COL_DEFS[0];
+  if(thead){
+    thead.innerHTML='<tr><th style="width:32px"><input type="checkbox" id="mvSelAll'+idx+'" onchange="mvToggleAll('+idx+',this)"/></th>'+
+      cols.map(c=>{
+        const isSort=_mvSortState.sec===idx&&_mvSortState.col===c.k;
+        const dir=isSort?(_mvSortState.dir===1?' ↑':' ↓'):'';
+        return `<th class="sortable" style="cursor:pointer;user-select:none" onclick="sortMvCol(${idx},'${c.k}')">${c.l}${dir}</th>`;
+      }).join('')+
+      '<th style="width:110px">Actions</th></tr>';
+  }
+
+  if(!rows.length){tbody.innerHTML=`<tr><td colspan="${cols.length+2}" style="text-align:center;padding:20px;color:var(--text3)">No records</td></tr>`;return;}
 
   const fmtDt=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('en-IN')+' '+dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});};
   const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
-  const qColor=(q)=>q>0?'var(--green)':'var(--red)';
+  const qColor=q=>q>0?'var(--green)':'var(--red)';
 
-  const mkEditBtn=(r)=>`<button class="btn btn-ghost btn-xs" onclick="openEditMvModal('${r.id}')">✏️ Edit</button>`;
+  const mkActions=r=>`<div style="display:flex;gap:3px">
+    <button class="btn btn-ghost btn-xs" onclick="openEditMvModal('${r.id}')">✏️</button>
+    <button class="btn btn-danger btn-xs" onclick="deleteMvRow('${r.id}')">🗑</button>
+  </div>`;
 
-  if(idx===0){ // stock_in
-    tbody.innerHTML=rows.map(r=>`<tr>
-      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
-      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-      <td>${r.product_desc||'—'}</td>
-      <td style="color:var(--green);font-weight:700">+${r.qty_change}</td>
-      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
-      <td>${r.invoice_no||'—'}</td><td>${fmtD(r.invoice_date)}</td>
-      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
-      <td style="font-size:12px">${r.remarks||'—'}</td>
-      <td>${mkEditBtn(r)}</td></tr>`).join('');
-  } else if(idx===1||idx===5){ // corrections
-    tbody.innerHTML=rows.map(r=>`<tr>
-      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
-      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-      <td>${r.product_desc||'—'}</td>
-      <td style="color:${qColor(r.qty_change)};font-weight:700">${r.qty_change>0?'+':''}${r.qty_change}</td>
-      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
-      <td colspan="3" style="color:var(--text2);font-size:12px">${r.remarks||'—'}</td>
-      <td>${r.done_by||'—'}</td>
-      <td>${mkEditBtn(r)}</td></tr>`).join('');
-  } else if(idx===2){ // sale
-    tbody.innerHTML=rows.map(r=>`<tr>
-      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
-      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-      <td>${r.product_desc||'—'}</td>
-      <td style="color:var(--red);font-weight:700">${r.qty_change}</td>
-      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
-      <td>${r.customer_name||'—'}</td>
-      <td>${r.invoice_no||'—'}</td><td>${fmtD(r.invoice_date)}</td>
-      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
-      <td style="font-size:12px">${r.remarks||'—'}</td>
-      <td>${mkEditBtn(r)}</td></tr>`).join('');
-  } else if(idx===3){ // test & return
-    tbody.innerHTML=rows.map(r=>`<tr>
-      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
-      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-      <td>${r.product_desc||'—'}</td>
-      <td style="color:var(--amber);font-weight:700">${r.qty_change}</td>
-      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
-      <td>${r.customer_name||'—'}</td>
-      <td>${r.rdc_no||'—'}</td><td>${fmtD(r.invoice_date)}</td>
-      <td>${fmtD(r.expected_return)}</td>
-      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
-      <td style="font-size:12px">${r.remarks||'—'}</td>
-      <td>${mkEditBtn(r)}</td></tr>`).join('');
-  } else if(idx===4){ // others
-    tbody.innerHTML=rows.map(r=>`<tr>
-      <td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>
-      <td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>
-      <td>${r.product_desc||'—'}</td>
-      <td style="color:var(--purple);font-weight:700">${r.qty_change}</td>
-      <td>${r.old_qty??'—'}</td><td>${r.new_qty??'—'}</td>
-      <td>${r.customer_name||'—'}</td>
-      <td>${r.doc_ref||'—'}</td>
-      <td>${r.waybill_no||'—'}</td><td>${r.dc_no||'—'}</td>
-      <td>${fmtD(r.expected_return)}</td>
-      <td style="font-size:12px">${r.remarks||'—'}</td>
-      <td>${mkEditBtn(r)}</td></tr>`).join('');
+  const mkCell=(r,c)=>{
+    if(c.k==='movement_date')return`<td style="font-size:11px;color:var(--text2);white-space:nowrap">${fmtDt(r.movement_date)}</td>`;
+    if(c.k==='product_code')return`<td style="font-family:monospace;color:var(--accent)">${r.product_code||'—'}</td>`;
+    if(c.k==='qty_change'){const q=r.qty_change;return`<td style="color:${qColor(q)};font-weight:700">${q>0?'+':''}${q}</td>`;}
+    if(c.k==='invoice_date'||c.k==='expected_return')return`<td>${fmtD(r[c.k])}</td>`;
+    if(c.k==='remarks'||c.k==='product_desc')return`<td style="font-size:12px">${r[c.k]||'—'}</td>`;
+    return`<td>${r[c.k]??'—'}</td>`;
+  };
+
+  tbody.innerHTML=rows.map(r=>`<tr style="${_mvSelSet.has(r.id)?'background:rgba(79,142,247,.08)':''}">
+    <td><input type="checkbox" ${_mvSelSet.has(r.id)?'checked':''} onchange="mvToggleSel('${r.id}',this,${idx})"/></td>
+    ${cols.map(c=>mkCell(r,c)).join('')}
+    <td>${mkActions(r)}</td>
+  </tr>`).join('');
+
+  updateMvActionBar(idx,rows);
+}
+
+function mvToggleSel(id,el,idx){
+  el.checked?_mvSelSet.add(id):_mvSelSet.delete(id);
+  const row=_mvData.find(r=>r.id===id);
+  if(row&&el.parentElement?.parentElement){el.parentElement.parentElement.style.background=el.checked?'rgba(79,142,247,.08)':'';}
+  updateMvActionBar(idx,null);
+}
+
+function mvToggleAll(idx,el){
+  const src=(_mvDataFiltered&&_mvDataFiltered.length?_mvDataFiltered:_mvData);
+  const cfg=MV_SEC_CFG[idx];
+  const rows=src.filter(r=>cfg.types.includes(r.movement_type));
+  if(el.checked)rows.forEach(r=>_mvSelSet.add(r.id));
+  else rows.forEach(r=>_mvSelSet.delete(r.id));
+  renderMvSec(idx);
+}
+
+function updateMvActionBar(idx,rows){
+  const bar=g('mvActionBar'+idx);
+  if(!bar)return;
+  const selCount=_mvSelSet.size;
+  if(selCount>0){
+    bar.style.display='flex';
+    const lbl=g('mvSelCount'+idx);
+    if(lbl)lbl.textContent=selCount+' selected';
+  } else {
+    bar.style.display='none';
   }
 }
 
-// Legacy renderMv used in renderAll — just re-renders active section
+async function deleteMvRow(id){
+  if(!confirm('Delete this movement log entry? The product stock quantity will be reversed automatically.'))return;
+  await deleteMvRows([id]);
+}
+
+async function deleteSelectedMv(idx){
+  const ids=[..._mvSelSet];
+  if(!ids.length){notif('No rows selected','e');return;}
+  if(!confirm(`Delete ${ids.length} selected entries? Product stock quantities will be reversed automatically.`))return;
+  await deleteMvRows(ids);
+  _mvSelSet.clear();
+}
+
+async function deleteMvRows(ids){
+  try{
+    // Group by product_id and sum qty_change to reverse
+    const toDelete=_mvData.filter(r=>ids.includes(r.id));
+    const qtyMap={};
+    toDelete.forEach(r=>{
+      if(r.product_id){
+        qtyMap[r.product_id]=(qtyMap[r.product_id]||0)-r.qty_change; // reverse: subtract the change
+      }
+    });
+    // Delete from movement_log
+    const{error}=await sb.from('movement_log').delete().in('id',ids);
+    if(error)throw error;
+    // Update each affected product qty
+    for(const [pid,delta] of Object.entries(qtyMap)){
+      const prod=products.find(x=>x.id===pid);
+      if(prod){
+        const newQty=Math.max(0,prod.qty+delta);
+        await sb.from('products').update({qty:newQty,updated_at:new Date().toISOString()}).eq('id',pid);
+        prod.qty=newQty;
+      }
+    }
+    // Log deletion
+    const names=toDelete.map(r=>r.product_code).filter(Boolean).join(', ');
+    await addLog('Movement Log Deleted',names,`${ids.length} entries deleted, stock reversed`,'','');
+    // Refresh
+    const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
+    if(pd)products=pd;
+    await loadMovementLog();
+    renderAll();
+    notif(`${ids.length} entries deleted. Stock quantities updated.`,'s');
+  }catch(e){notif('Delete failed: '+e.message,'e');}
+}
+
+// Legacy renderMv used in renderAll
 function renderMv(idx){ renderMvSec(_mvSecActive); }
 
 // ══════════════════════════════════════════════════════
