@@ -1988,7 +1988,14 @@ function openEditMvModal(id){
       <strong>${r.product_code}</strong> — ${r.product_desc} &nbsp;|&nbsp; Type: <span style="color:var(--accent)">${r.movement_type}</span><br>
       <span style="color:var(--text2)">Qty change: ${r.qty_change>0?'+':''}${r.qty_change} &nbsp;|&nbsp; ${r.old_qty} → ${r.new_qty}</span>
     </div>
-    <div class="fg2"><label>Movement Date</label><input type="datetime-local" id="emvDate" value="${fmtDTL(r.movement_date)}"/></div>`;
+    <div class="frow">
+      <div class="fg2"><label>Movement Date</label><input type="datetime-local" id="emvDate" value="${fmtDTL(r.movement_date)}"/></div>
+      <div class="fg2">
+        <label>Qty Change <span style="color:var(--text2);font-weight:400;font-size:10px">(positive = in, negative = out)</span></label>
+        <input type="number" id="emvQtyChange" value="${r.qty_change}" placeholder="e.g. 3 or -2"/>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">Current product qty: <strong id="emvCurrentQty">loading...</strong></div>
+      </div>
+    </div>`;
   if(r.movement_type==='stock_in'){
     fields+=`
     <div class="frow"><div class="fg2"><label>Invoice No</label><input type="text" id="emvInvNo" value="${r.invoice_no||''}"/></div><div class="fg2"><label>Invoice Date</label><input type="date" id="emvInvDate" value="${fmtDL(r.invoice_date)}"/></div></div>
@@ -2015,6 +2022,10 @@ function openEditMvModal(id){
       <textarea id="emvEditReason" style="min-height:55px" placeholder="Why are you editing this entry?"></textarea>
     </div>`;
   g('emvFormBody').innerHTML=fields;
+  // Show current product qty
+  const prod=products.find(x=>x.id===r.product_id);
+  const curQtyEl=g('emvCurrentQty');
+  if(curQtyEl)curQtyEl.textContent=prod?prod.qty+' units':'unknown';
   showO('editMvModal');
 }
 
@@ -2025,26 +2036,46 @@ async function saveEditMv(){
   setBtnLoad('saveEmvBtn','Saving...');
   try{
     const r=_editMvRow;
+    const newQtyChange=gv('emvQtyChange')!==''?parseInt(gv('emvQtyChange')):r.qty_change;
+    const qtyChanged=newQtyChange!==r.qty_change;
     const updates={
       movement_date:gv('emvDate')||r.movement_date,
-      invoice_no:gv('emvInvNo')||r.invoice_no||null,
+      qty_change:newQtyChange,
+      invoice_no:gv('emvInvNo')!==undefined?gv('emvInvNo')||null:r.invoice_no,
       invoice_date:gv('emvInvDate')||r.invoice_date||null,
-      waybill_no:gv('emvWaybill')||r.waybill_no||null,
-      dc_no:gv('emvDcNo')||r.dc_no||null,
-      customer_name:gv('emvCust')||r.customer_name||null,
-      rdc_no:gv('emvRdcNo')||r.rdc_no||null,
+      waybill_no:gv('emvWaybill')!==undefined?gv('emvWaybill')||null:r.waybill_no,
+      dc_no:gv('emvDcNo')!==undefined?gv('emvDcNo')||null:r.dc_no,
+      customer_name:gv('emvCust')!==undefined?gv('emvCust')||null:r.customer_name,
+      rdc_no:gv('emvRdcNo')!==undefined?gv('emvRdcNo')||null:r.rdc_no,
       expected_return:gv('emvExpReturn')||r.expected_return||null,
-      doc_ref:gv('emvDocRef')||r.doc_ref||null,
-      remarks:gv('emvRemarks')||null,
+      doc_ref:gv('emvDocRef')!==undefined?gv('emvDocRef')||null:r.doc_ref,
+      remarks:gv('emvRemarks')||r.remarks||null,
     };
     const{error}=await sb.from('movement_log').update(updates).eq('id',r.id);
     if(error)throw error;
-    // Log the edit in activity log
-    await addLog('Movement Log Edited',r.product_desc,`Edited ${r.movement_type} entry. Reason: ${reason}`,'','');
+    // If qty_change was edited, recalculate and update the product's actual qty
+    if(qtyChanged&&r.product_id){
+      const diff=newQtyChange-r.qty_change;
+      const prod=products.find(x=>x.id===r.product_id);
+      if(prod){
+        const newProductQty=Math.max(0,prod.qty+diff);
+        const{error:qErr}=await sb.from('products').update({qty:newProductQty,updated_at:new Date().toISOString()}).eq('id',r.product_id);
+        if(qErr)console.warn('qty update:',qErr.message);
+        else{
+          // also update new_qty in this movement log row
+          await sb.from('movement_log').update({new_qty:newProductQty}).eq('id',r.id);
+          prod.qty=newProductQty;
+        }
+      }
+    }
+    await addLog('Movement Log Edited',r.product_desc,`Edited ${r.movement_type} entry. Qty: ${r.qty_change}→${newQtyChange}. Reason: ${reason}`,'','');
+    const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
+    if(pd)products=pd;
     await loadMovementLog();
     closeM('editMvModal');
+    renderAll();
     renderMvSec(_mvSecActive);
-    notif('Movement log updated!','s');
+    notif('Movement log updated!'+(qtyChanged?` Product qty recalculated.`:''),'s');
   }catch(e){notif('Save failed: '+e.message,'e');}
   finally{setBtnLoad('saveEmvBtn',null,'Save Changes');}
 }
