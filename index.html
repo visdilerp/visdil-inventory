@@ -2855,14 +2855,13 @@ function daysBetween(dateA, dateB){
 // Build ageing rows from movement_log stock_in entries
 // Each stock_in is a batch. Remaining qty = batch qty - outward qty after that date for same product
 function buildAgeingRows(){
-  const today=new Date();
-  today.setHours(0,0,0,0);
+  const today=new Date(); today.setHours(0,0,0,0);
   const rows=[];
 
-  // Get all stock_in entries
+  // All inward entries
   const inEntries=_mvData.filter(r=>r.movement_type==='stock_in');
 
-  // Get all outward entries (sale, test_return, other) per product
+  // Outward qty per product (FIFO consumption)
   const outByProduct={};
   _mvData.filter(r=>['sale','test_return','other'].includes(r.movement_type)).forEach(r=>{
     if(!r.product_id)return;
@@ -2870,7 +2869,7 @@ function buildAgeingRows(){
     outByProduct[r.product_id].push({date:new Date(r.movement_date),qty:Math.abs(r.qty_change)});
   });
 
-  // For each product, sort its in-entries by date and allocate outward qty using FIFO
+  // Group in-entries by product
   const productInMap={};
   inEntries.forEach(r=>{
     if(!r.product_id)return;
@@ -2879,81 +2878,50 @@ function buildAgeingRows(){
   });
 
   Object.entries(productInMap).forEach(([pid,batches])=>{
-    // Sort batches oldest first for FIFO
     batches.sort((a,b)=>a.batchDate-b.batchDate);
     const prod=products.find(x=>x.id===pid);
     if(!prod)return;
 
-    // Calculate total outward qty per batch using FIFO
+    // Net outward remaining to consume (FIFO from oldest batch)
     let remainingOutward=(outByProduct[pid]||[]).reduce((s,o)=>s+o.qty,0);
-    // Also account for corrections_down
-    const corrDown=_mvData.filter(r=>r.product_id===pid&&r.movement_type==='correction_down');
-    corrDown.forEach(r=>{ remainingOutward+=Math.abs(r.qty_change); });
-    // correction_up adds back
-    const corrUp=_mvData.filter(r=>r.product_id===pid&&r.movement_type==='correction_up');
-    corrUp.forEach(r=>{ remainingOutward-=r.qty_change; });
+    _mvData.filter(r=>r.product_id===pid&&r.movement_type==='correction_down').forEach(r=>{ remainingOutward+=Math.abs(r.qty_change); });
+    _mvData.filter(r=>r.product_id===pid&&r.movement_type==='correction_up').forEach(r=>{ remainingOutward-=r.qty_change; });
     if(remainingOutward<0)remainingOutward=0;
 
-    // FIFO: consume outward from oldest batch first
     batches.forEach(b=>{
-      let batchQty=b.qty_change||0;
-      if(batchQty<=0)return; // skip zero/negative
-      let consumed=Math.min(batchQty,remainingOutward);
+      const batchQty=b.qty_change||0;
+      if(batchQty<=0)return;
+      const consumed=Math.min(batchQty,remainingOutward);
       remainingOutward=Math.max(0,remainingOutward-consumed);
       const remaining=batchQty-consumed;
       const ageDays=daysBetween(b.batchDate,today);
-      const band=getAgeBand(ageDays);
       rows.push({
-        id:b.id,
-        product_id:pid,
+        id:b.id, product_id:pid,
         product_code:b.product_code||prod.code,
         product_desc:b.product_desc||prod.short_desc,
-        category:prod.category,
-        brand:prod.brand,
-        variant:prod.variant||'',
-        batch_date:b.movement_date,
-        batch_qty:batchQty,
-        remaining_qty:remaining,
-        consumed_qty:consumed,
-        age_days:ageDays,
-        band,
-        invoice_no:b.invoice_no||'',
-        invoice_date:b.invoice_date||'',
-        waybill_no:b.waybill_no||'',
-        dc_no:b.dc_no||'',
-        remarks:b.remarks||'',
+        category:prod.category, brand:prod.brand, variant:prod.variant||'',
+        batch_date:b.movement_date, batch_qty:batchQty, remaining_qty:remaining,
+        consumed_qty:consumed, age_days:ageDays, band:getAgeBand(ageDays),
+        invoice_no:b.invoice_no||'', invoice_date:b.invoice_date||'',
+        waybill_no:b.waybill_no||'', dc_no:b.dc_no||'', remarks:b.remarks||'',
       });
     });
   });
 
-  // Also handle products that have no movement_log entries
-  // (added before this feature was built) — use product entry_time as fallback
+  // Fallback for products with no movement log
   products.forEach(prod=>{
-    const hasEntries=rows.some(r=>r.product_id===prod.id);
-    if(!hasEntries&&prod.qty>0){
+    if(prod.qty>0&&!rows.some(r=>r.product_id===prod.id)){
       const batchDate=new Date(prod.entry_time||prod.created_at||new Date());
       const ageDays=daysBetween(batchDate,today);
-      const band=getAgeBand(ageDays);
       rows.push({
-        id:'fallback_'+prod.id,
-        product_id:prod.id,
-        product_code:prod.code,
-        product_desc:prod.short_desc,
-        category:prod.category,
-        brand:prod.brand,
-        variant:prod.variant||'',
-        batch_date:prod.entry_time||prod.created_at,
-        batch_qty:prod.qty,
-        remaining_qty:prod.qty,
-        consumed_qty:0,
-        age_days:ageDays,
-        band,
-        invoice_no:prod.invoice_no||'',
-        invoice_date:prod.invoice_date||'',
-        waybill_no:prod.dc_waybill||'',
-        dc_no:'',
-        remarks:'(entry time used — no movement log)',
-        _isFallback:true,
+        id:'fb_'+prod.id, product_id:prod.id,
+        product_code:prod.code, product_desc:prod.short_desc,
+        category:prod.category, brand:prod.brand, variant:prod.variant||'',
+        batch_date:prod.entry_time||prod.created_at, batch_qty:prod.qty,
+        remaining_qty:prod.qty, consumed_qty:0, age_days:ageDays,
+        band:getAgeBand(ageDays), invoice_no:prod.invoice_no||'',
+        invoice_date:prod.invoice_date||'', waybill_no:prod.dc_waybill||'',
+        dc_no:'', remarks:'(entry time — no movement log)', _isFallback:true,
       });
     }
   });
@@ -2976,95 +2944,178 @@ function popAgeFilters(){
   if(ab){const v=ab.value;ab.innerHTML='<option value="">All Brands</option>'+brands.map(b=>`<option>${b}</option>`).join('');ab.value=v;}
 }
 
+// Build grouped product structure for display
+function buildGroupedAgeRows(filteredBatches){
+  // Group by product_id preserving sort order of first batch
+  const grouped={};
+  filteredBatches.forEach(r=>{
+    if(!grouped[r.product_id]){
+      grouped[r.product_id]={
+        product_id:r.product_id,
+        product_code:r.product_code,
+        product_desc:r.product_desc,
+        category:r.category, brand:r.brand, variant:r.variant,
+        batches:[]
+      };
+    }
+    grouped[r.product_id].batches.push(r);
+  });
+  // Compute product-level totals
+  return Object.values(grouped).map(g2=>{
+    // Sort batches oldest first within each product
+    g2.batches.sort((a,b)=>new Date(a.batch_date)-new Date(b.batch_date));
+    g2.total_remaining=g2.batches.reduce((s,b)=>s+b.remaining_qty,0);
+    g2.total_batch_qty=g2.batches.reduce((s,b)=>s+b.batch_qty,0);
+    g2.oldest_days=Math.max(...g2.batches.map(b=>b.age_days));
+    g2.oldest_band=getAgeBand(g2.oldest_days);
+    g2.batch_count=g2.batches.length;
+    return g2;
+  });
+}
+
 function renderAgeing(){
   popAgeFilters();
   buildAgeingRows();
   const cat=gv('ageCatF'),brand=gv('ageBrandF'),grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
-  const sortKey=gv('ageSort')||'';
+  const sortKey=gv('ageSort')||'age_desc';
 
-  let rows=_ageRows.filter(r=>r.remaining_qty>0); // only show rows with stock remaining
-
-  // Filters
-  if(cat)rows=rows.filter(r=>r.category===cat);
-  if(brand)rows=rows.filter(r=>r.brand===brand);
+  // Filter at batch level first
+  let batches=_ageRows.filter(r=>r.remaining_qty>0);
+  if(cat)batches=batches.filter(r=>r.category===cat);
+  if(brand)batches=batches.filter(r=>r.brand===brand);
   if(grp){
-    const [lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);
-    rows=rows.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));
+    const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);
+    batches=batches.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));
   }
-  if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.category+r.brand+r.invoice_no+r.waybill_no).toLowerCase().includes(s));
+  if(s)batches=batches.filter(r=>(r.product_code+r.product_desc+r.category+r.brand+r.invoice_no+r.waybill_no).toLowerCase().includes(s));
 
-  // Sort
-  const effectiveCol=sortKey==='age_desc'?'age_days':sortKey==='age_asc'?'age_days':sortKey==='qty_desc'?'remaining_qty':sortKey||_ageSortCol;
-  const effectiveDir=sortKey==='age_asc'?1:sortKey==='age_desc'?-1:sortKey==='qty_desc'?-1:_ageSortDir;
-  rows=[...rows].sort((a,b)=>{
-    let av=a[effectiveCol]??'',bv=b[effectiveCol]??'';
-    if(typeof av==='number')return effectiveDir*(av-bv);
-    return effectiveDir*String(av).localeCompare(String(bv));
-  });
+  // Build grouped structure
+  let groups=buildGroupedAgeRows(batches);
+
+  // Sort groups
+  const sd={
+    age_desc:(a,b)=>b.oldest_days-a.oldest_days,
+    age_asc:(a,b)=>a.oldest_days-b.oldest_days,
+    code:(a,b)=>a.product_code.localeCompare(b.product_code),
+    category:(a,b)=>a.category.localeCompare(b.category),
+    qty_desc:(a,b)=>b.total_remaining-a.total_remaining,
+  };
+  if(sd[sortKey])groups.sort(sd[sortKey]);
 
   // Summary cards
-  const totalBatches=rows.length;
-  const totalQty=rows.reduce((s,r)=>s+r.remaining_qty,0);
-  const fresh=rows.filter(r=>r.age_days<=30).reduce((s,r)=>s+r.remaining_qty,0);
-  const old=rows.filter(r=>r.age_days>180&&r.age_days<=365).reduce((s,r)=>s+r.remaining_qty,0);
-  const veryOld=rows.filter(r=>r.age_days>365).reduce((s,r)=>s+r.remaining_qty,0);
+  const totalProducts=groups.length;
+  const totalBatches=groups.reduce((s,g2)=>s+g2.batch_count,0);
+  const totalQty=groups.reduce((s,g2)=>s+g2.total_remaining,0);
+  const fresh=batches.filter(r=>r.age_days<=30).reduce((s,r)=>s+r.remaining_qty,0);
+  const veryOld=batches.filter(r=>r.age_days>365).reduce((s,r)=>s+r.remaining_qty,0);
   g('ageSummary').innerHTML=`
-    <div class="sc"><div class="sc-label">Total Batches</div><div class="sc-val">${totalBatches}</div></div>
+    <div class="sc"><div class="sc-label">Products</div><div class="sc-val">${totalProducts}</div></div>
+    <div class="sc"><div class="sc-label">Total Batches</div><div class="sc-val" style="color:var(--text2)">${totalBatches}</div></div>
     <div class="sc"><div class="sc-label">Total Stock Units</div><div class="sc-val" style="color:var(--accent)">${totalQty}</div></div>
     <div class="sc"><div class="sc-label">Fresh (≤30 days)</div><div class="sc-val" style="color:#22c55e">${fresh}</div></div>
-    <div class="sc"><div class="sc-label">181–365 days</div><div class="sc-val" style="color:#f97316">${old}</div></div>
     <div class="sc"><div class="sc-label">Over 1 Year</div><div class="sc-val" style="color:var(--red)">${veryOld}</div></div>`;
 
-  // Update thead sort indicators
+  // Sort header indicators
   const thead=g('ageThead');
   if(thead){
-    const colMap={product_code:'Code',category:'Category',brand:'Brand',product_desc:'Description',batch_date:'Stock-In Date',batch_qty:'Batch Qty',remaining_qty:'Remaining Qty',age_days:'Age (Days)',invoice_no:'Invoice No',waybill_no:'Waybill'};
-    thead.innerHTML='<tr>'+Object.entries(colMap).map(([k,l])=>{
-      const isSort=effectiveCol===k;
-      const arr=isSort?(effectiveDir===1?' ↑':' ↓'):'';
-      return `<th class="sortable" onclick="ageSort('${k}')" style="cursor:pointer">${l}${arr}</th>`;
-    }).join('')+'<th>Age Band</th></tr>';
+    const cols=[
+      {k:'code',l:'Code / Product',sort:'code'},
+      {k:'category',l:'Category',sort:'category'},
+      {k:'brand',l:'Brand'},
+      {k:'batch_date',l:'Stock-In Date'},
+      {k:'batch_qty',l:'Batch Qty'},
+      {k:'remaining_qty',l:'Remaining Qty',sort:'qty_desc'},
+      {k:'age_days',l:'Age (Days)',sort:'age_desc'},
+      {k:'band',l:'Age Band'},
+      {k:'invoice_no',l:'Invoice No'},
+      {k:'waybill_no',l:'Waybill / DC'},
+    ];
+    thead.innerHTML='<tr>'+cols.map(c=>{
+      const active=sortKey===(c.sort||'');
+      return `<th class="sortable" ${c.sort?`onclick="document.getElementById('ageSort').value='${c.sort}';renderAgeing()"`:''} style="cursor:${c.sort?'pointer':'default'}">${c.l}${active?' ↕':''}</th>`;
+    }).join('')+'</tr>';
   }
 
-  if(!rows.length){
-    g('ageTbl').innerHTML=`<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--text3)">No ageing data found. Add products and stock-in entries to see ageing.</td></tr>`;
+  if(!groups.length){
+    g('ageTbl').innerHTML=`<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--text3)">No ageing data. Add products with stock-in entries.</td></tr>`;
     g('ageFoot').innerHTML='';
     return;
   }
 
   const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
-  g('ageTbl').innerHTML=rows.map(r=>{
-    const band=r.band;
-    const pct=r.batch_qty>0?Math.round((r.remaining_qty/r.batch_qty)*100):0;
-    return `<tr>
-      <td style="font-family:monospace;color:var(--accent);font-size:12px">${r.product_code}</td>
-      <td>${r.category}</td>
-      <td>${r.brand}</td>
-      <td>${r.product_desc}${r.variant?`<br><span style="font-size:11px;color:var(--text2)">${r.variant}</span>`:''}</td>
-      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${fmtD(r.batch_date)}</td>
-      <td style="font-weight:700;color:var(--accent)">${r.batch_qty}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-weight:700;color:${band.color}">${r.remaining_qty}</span>
-          <div style="width:50px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:${band.color};border-radius:3px"></div>
-          </div>
-          <span style="font-size:10px;color:var(--text2)">${pct}%</span>
+  let html2='';
+
+  groups.forEach(grp2=>{
+    const ob=grp2.oldest_band;
+    const multiRow=grp2.batch_count>1;
+
+    // ── PRODUCT HEADER ROW ──
+    html2+=`<tr style="background:var(--bg3);border-top:2px solid var(--border2)">
+      <td colspan="4" style="padding:9px 10px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="font-family:monospace;color:var(--accent);font-size:12px;font-weight:700">${grp2.product_code}</span>
+          <span style="font-weight:600;font-size:13px">${grp2.product_desc}</span>
+          ${grp2.variant?`<span style="font-size:11px;color:var(--text2)">${grp2.variant}</span>`:''}
+          <span class="badge bb" style="font-size:10px">${grp2.category}</span>
+          <span class="badge bt" style="font-size:10px">${grp2.brand}</span>
         </div>
       </td>
-      <td style="font-weight:700;color:${band.color}">${r.age_days}</td>
-      <td><span style="background:${band.bg};color:${band.color};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${band.label}</span></td>
-      <td style="font-size:12px">${r.invoice_no||'—'}</td>
-      <td style="font-size:12px">${r.waybill_no||'—'}</td>
+      <td style="padding:9px 10px">
+        <span style="font-size:11px;color:var(--text2)">${grp2.batch_count} batch${grp2.batch_count>1?'es':''}</span>
+      </td>
+      <td colspan="2" style="padding:9px 10px">
+        <span style="font-size:14px;font-weight:700;color:var(--accent)">${grp2.total_remaining}</span>
+        <span style="font-size:11px;color:var(--text2);margin-left:4px">units total</span>
+      </td>
+      <td colspan="3" style="padding:9px 10px">
+        <span style="font-size:11px;color:var(--text2)">Oldest: </span>
+        <span style="font-size:11px;font-weight:600;color:${ob.color}">${grp2.oldest_days} days</span>
+        <span style="background:${ob.bg};color:${ob.color};border-radius:3px;padding:1px 6px;font-size:10px;font-weight:600;margin-left:5px">${ob.label}</span>
+      </td>
     </tr>`;
-  }).join('');
 
-  // Totals footer
-  const ftq=rows.reduce((s,r)=>s+r.batch_qty,0);
-  const frq=rows.reduce((s,r)=>s+r.remaining_qty,0);
-  g('ageFoot').innerHTML=`<tr style="background:var(--bg3);font-weight:700">
-    <td colspan="4" style="padding:8px 10px">TOTAL (${rows.length} batches, ${[...new Set(rows.map(r=>r.product_id))].length} products)</td>
-    <td></td><td>${ftq}</td><td>${frq}</td><td></td><td></td><td></td><td></td>
+    // ── BATCH SUB-ROWS ──
+    grp2.batches.forEach((b,bi)=>{
+      const band=b.band;
+      const pct=b.batch_qty>0?Math.round((b.remaining_qty/b.batch_qty)*100):0;
+      const isLast=bi===grp2.batches.length-1;
+      const connChar=isLast?'└':'├';
+      html2+=`<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 10px 7px 18px;font-size:12px">
+          <span style="color:var(--text3);margin-right:5px;font-family:monospace">${connChar}</span>
+          <span style="font-family:monospace;font-size:11px;color:var(--text2)">Batch ${bi+1}</span>
+        </td>
+        <td style="font-size:12px;color:var(--text2)">${b.category}</td>
+        <td style="font-size:12px;color:var(--text2)">${b.brand}</td>
+        <td style="font-size:12px;color:var(--text2);white-space:nowrap">${fmtD(b.batch_date)}</td>
+        <td style="font-size:12px">${b.batch_qty}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-weight:700;color:${band.color}">${b.remaining_qty}</span>
+            <div style="width:44px;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:${band.color};border-radius:3px"></div>
+            </div>
+            <span style="font-size:10px;color:var(--text2)">${pct}%</span>
+          </div>
+        </td>
+        <td style="font-weight:700;color:${band.color}">${b.age_days}</td>
+        <td><span style="background:${band.bg};color:${band.color};border-radius:4px;padding:2px 7px;font-size:11px;font-weight:600">${band.label}</span></td>
+        <td style="font-size:11px">${b.invoice_no||'—'}</td>
+        <td style="font-size:11px">${b.waybill_no||b.dc_no||'—'}</td>
+      </tr>`;
+    });
+  });
+
+  g('ageTbl').innerHTML=html2;
+
+  // Footer
+  const totalBatchQty=batches.reduce((s,r)=>s+r.batch_qty,0);
+  const totalRem=batches.reduce((s,r)=>s+r.remaining_qty,0);
+  g('ageFoot').innerHTML=`<tr style="background:var(--bg3);font-weight:700;border-top:2px solid var(--border2)">
+    <td colspan="4" style="padding:9px 10px">TOTAL — ${totalProducts} products, ${totalBatches} batches</td>
+    <td>${totalBatchQty}</td>
+    <td colspan="2" style="color:var(--accent);font-size:14px">${totalRem} units</td>
+    <td colspan="3"></td>
   </tr>`;
 }
 
@@ -3082,22 +3133,32 @@ function getAgeExportRows(){
 function exportAgeingExcel(){
   const rows=getAgeExportRows();
   if(!rows.length){notif('No data to export','e');return;}
-  const h=['Code','Category','Brand','Description','Variant','Stock-In Date','Batch Qty','Remaining Qty','Consumed Qty','Age (Days)','Age Band','Invoice No','Invoice Date','Waybill','DC No','Remarks'];
-  const d=[h,...rows.map(r=>[
-    r.product_code,r.category,r.brand,r.product_desc,r.variant,
-    r.batch_date?new Date(r.batch_date).toLocaleDateString('en-IN'):'',
-    r.batch_qty,r.remaining_qty,r.consumed_qty,r.age_days,r.band.label,
-    r.invoice_no,r.invoice_date?new Date(r.invoice_date).toLocaleDateString('en-IN'):'',
-    r.waybill_no,r.dc_no,r.remarks
-  ])];
-  // Add totals row
-  d.push(['TOTAL','','','','','',
+  // Group by product for structured Excel output
+  const groups=buildGroupedAgeRows([...rows]);
+  groups.sort((a,b)=>b.oldest_days-a.oldest_days);
+  const h=['Product Code','Category','Brand','Description','Variant','Batch #','Stock-In Date','Batch Qty','Remaining Qty','Consumed Qty','Age (Days)','Age Band','Invoice No','Invoice Date','Waybill','DC No','Remarks'];
+  const data=[h];
+  groups.forEach(grp2=>{
+    grp2.batches.forEach((b,bi)=>{
+      data.push([
+        b.product_code, b.category, b.brand, b.product_desc, b.variant,
+        `Batch ${bi+1}`,
+        b.batch_date?new Date(b.batch_date).toLocaleDateString('en-IN'):'',
+        b.batch_qty, b.remaining_qty, b.consumed_qty, b.age_days, b.band.label,
+        b.invoice_no, b.invoice_date?new Date(b.invoice_date).toLocaleDateString('en-IN'):'',
+        b.waybill_no, b.dc_no, b.remarks
+      ]);
+    });
+    // Product sub-total row
+    data.push([grp2.product_code,'','','PRODUCT TOTAL','','',''
+      ,grp2.total_batch_qty,grp2.total_remaining,'','','','','','','','']);
+    data.push([]); // blank separator
+  });
+  // Grand total
+  data.push(['GRAND TOTAL','','','','','','',
     rows.reduce((s,r)=>s+r.batch_qty,0),
-    rows.reduce((s,r)=>s+r.remaining_qty,0),
-    rows.reduce((s,r)=>s+r.consumed_qty,0),
-    '','','','','','',''
-  ]);
-  const ws=XLSX.utils.aoa_to_sheet(d);
+    rows.reduce((s,r)=>s+r.remaining_qty,0),'','','','','','','','']);
+  const ws=XLSX.utils.aoa_to_sheet(data);
   ws['!cols']=h.map(()=>({wch:18}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Ageing Report');
   XLSX.writeFile(wb,`Visdil_Ageing_${yyyymmdd()}.xlsx`);notif('Ageing report downloaded!','s');
@@ -3106,24 +3167,37 @@ function exportAgeingExcel(){
 function exportAgeingPDF(){
   const rows=getAgeExportRows();
   if(!rows.length){notif('No data to export','e');return;}
+  const groups=buildGroupedAgeRows([...rows]);
+  groups.sort((a,b)=>b.oldest_days-a.oldest_days);
   const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
-  const trs=rows.map(r=>`<tr>
-    <td>${r.product_code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.product_desc}</td>
-    <td>${fmtD(r.batch_date)}</td>
-    <td style="font-weight:700">${r.batch_qty}</td>
-    <td style="font-weight:700;color:${r.band.color}">${r.remaining_qty}</td>
-    <td style="font-weight:700;color:${r.band.color}">${r.age_days}</td>
-    <td style="color:${r.band.color};font-weight:600">${r.band.label}</td>
-    <td>${r.invoice_no||''}</td><td>${r.waybill_no||''}</td>
-  </tr>`).join('');
+  let trs='';
+  groups.forEach(grp2=>{
+    // Product header row
+    trs+=`<tr style="background:#e0e7ff">
+      <td colspan="4" style="font-weight:700;font-size:9px">${grp2.product_code} — ${grp2.product_desc}${grp2.variant?' ('+grp2.variant+')':''}</td>
+      <td colspan="2" style="font-weight:700;color:#1e40af">${grp2.total_remaining} units total</td>
+      <td colspan="5" style="color:#64748b;font-size:8px">${grp2.batch_count} batch${grp2.batch_count>1?'es':''} | Oldest: ${grp2.oldest_days} days (${grp2.oldest_band.label})</td>
+    </tr>`;
+    grp2.batches.forEach((b,bi)=>{
+      trs+=`<tr>
+        <td style="padding-left:14px;color:#64748b">└ Batch ${bi+1}</td>
+        <td>${b.category}</td><td>${b.brand}</td><td>${fmtD(b.batch_date)}</td>
+        <td>${b.batch_qty}</td>
+        <td style="font-weight:700;color:${b.band.color}">${b.remaining_qty}</td>
+        <td style="font-weight:700;color:${b.band.color}">${b.age_days}</td>
+        <td style="color:${b.band.color};font-weight:600">${b.band.label}</td>
+        <td>${b.invoice_no||''}</td><td>${b.waybill_no||''}</td><td>${b.dc_no||''}</td>
+      </tr>`;
+    });
+  });
   const totalBatch=rows.reduce((s,r)=>s+r.batch_qty,0);
   const totalRem=rows.reduce((s,r)=>s+r.remaining_qty,0);
   printPage('Stock Ageing Report',`
-    <p style="margin-bottom:8px;font-size:9px;color:#555">Batches: ${rows.length} | Products: ${[...new Set(rows.map(r=>r.product_id))].length} | Total Batch Qty: ${totalBatch} | Total Remaining: ${totalRem}</p>
+    <p style="margin-bottom:8px;font-size:9px;color:#555">Products: ${groups.length} | Batches: ${rows.length} | Total Batch Qty: ${totalBatch} | Total Remaining: ${totalRem}</p>
     <table>
-      <thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Description</th><th>Stock-In Date</th><th>Batch Qty</th><th>Remaining</th><th>Age Days</th><th>Age Band</th><th>Invoice</th><th>Waybill</th></tr></thead>
+      <thead><tr><th>Code / Batch</th><th>Category</th><th>Brand</th><th>Stock-In Date</th><th>Batch Qty</th><th>Remaining</th><th>Age Days</th><th>Age Band</th><th>Invoice</th><th>Waybill</th><th>DC No</th></tr></thead>
       <tbody>${trs}</tbody>
-      <tfoot><tr style="background:#e0e7ff"><td colspan="5" style="font-weight:700">TOTAL</td><td style="font-weight:700">${totalBatch}</td><td style="font-weight:700">${totalRem}</td><td colspan="4"></td></tr></tfoot>
+      <tfoot><tr style="background:#e0e7ff"><td colspan="4" style="font-weight:700">GRAND TOTAL</td><td style="font-weight:700">${totalBatch}</td><td style="font-weight:700;color:#1e40af">${totalRem}</td><td colspan="5"></td></tr></tfoot>
     </table>`);
 }
 
