@@ -229,6 +229,7 @@ th.col-drop-right{border-right:2px solid var(--accent)}
     <div class="ni" onclick="showTab('export')">⬇️ Export</div>
     <div class="ni" id="navMovement" onclick="showTab('movement')">📤 Movement Log</div>
     <div class="ni" id="navBulkUpload" onclick="showTab('bulkupload')">📥 Bulk Upload</div>
+    <div class="ni" onclick="showTab('ageing')">📅 Ageing Report</div>
   </div>
   <div class="main">
 
@@ -308,14 +309,46 @@ th.col-drop-right{border-right:2px solid var(--accent)}
     <div class="tab" id="t-statement">
       <div class="sh"><div class="stt">Stock Statement</div><div id="stmtExportBtns" style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="exportStmtExcel()">⬇ Excel</button><button class="btn btn-ghost btn-sm" onclick="exportStmtPDF()">📄 PDF</button></div></div>
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:13px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <select class="flt" id="stmtCat" onchange="renderStatement()"><option value="">All Categories</option></select>
-          <select class="flt" id="stmtBrand" onchange="renderStatement()"><option value="">All Brands</option></select>
-          <select class="flt" id="stmtStatus" onchange="renderStatement()"><option value="">All Status</option><option value="in">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select>
-          <select class="flt" id="stmtBasis" onchange="renderStatement()" style="border-color:var(--accent);color:var(--accent);font-weight:600">
-            <option value="landed">Landed</option><option value="list_price">List Price</option><option value="bsp">BSP</option><option value="dealer_price">Dealer</option><option value="end_user_price">End User/MRP</option>
-          </select>
-          <input class="srch" id="stmtSrch" placeholder="Search..." oninput="renderStatement()" />
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
+          <!-- Multi-select Category -->
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Category</div>
+            <div id="stmtCatPicker" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:5px 8px;min-width:140px;max-height:120px;overflow-y:auto;font-size:12px"></div>
+          </div>
+          <!-- Multi-select Brand -->
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Brand</div>
+            <div id="stmtBrandPicker" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:5px 8px;min-width:130px;max-height:120px;overflow-y:auto;font-size:12px"></div>
+          </div>
+          <!-- Multi-select Status -->
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Status</div>
+            <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:5px 8px;min-width:110px;font-size:12px;display:flex;flex-direction:column;gap:4px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="stmtStIn" onchange="renderStatement()" checked/> In Stock</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="stmtStLow" onchange="renderStatement()" checked/> Low Stock</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="stmtStOut" onchange="renderStatement()" checked/> Out of Stock</label>
+            </div>
+          </div>
+          <!-- Price Basis + No Price option -->
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Price Basis</div>
+            <select class="flt" id="stmtBasis" onchange="renderStatement()" style="border-color:var(--accent);color:var(--accent);font-weight:600">
+              <option value="none">No Price</option>
+              <option value="landed">Landed</option>
+              <option value="list_price">List Price</option>
+              <option value="bsp">BSP</option>
+              <option value="dealer_price">Dealer</option>
+              <option value="end_user_price">End User/MRP</option>
+            </select>
+          </div>
+          <!-- Search -->
+          <div style="display:flex;flex-direction:column;gap:3px;align-self:flex-end">
+            <input class="srch" id="stmtSrch" placeholder="Search..." oninput="renderStatement()" style="width:160px"/>
+          </div>
+          <!-- Reset -->
+          <div style="align-self:flex-end">
+            <button class="btn btn-ghost btn-xs" onclick="resetStmtFilters()">↺ Reset</button>
+          </div>
         </div>
       </div>
       <div class="stmt-summary" id="stmtSummary"></div>
@@ -554,6 +587,79 @@ th.col-drop-right{border-right:2px solid var(--accent)}
           <div class="ts"><table><thead id="mvThead5"><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty Change</th><th>Old Qty</th><th>New Qty</th><th>Reason / Remarks</th><th>By</th></tr></thead><tbody id="mvTbl5"></tbody></table></div>
         </div>
       </div>
+      </div>
+    </div>
+
+    <!-- AGEING REPORT TAB -->
+    <div class="tab" id="t-ageing">
+      <div class="sh">
+        <div class="stt">📅 Stock Ageing Report</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="exportAgeingExcel()">⬇ Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportAgeingPDF()">📄 PDF</button>
+        </div>
+      </div>
+      <!-- Info box -->
+      <div style="background:rgba(79,142,247,.07);border:1px solid rgba(79,142,247,.2);border-radius:var(--r);padding:11px 14px;margin-bottom:13px;font-size:12px;color:var(--text2);line-height:1.7">
+        Ageing is calculated from each stock-in entry date to today. Products with multiple inward entries are split by batch — each batch ages independently.
+        Remaining qty per batch = stock-in qty minus outward movements after that date.
+      </div>
+      <!-- Filters -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:13px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select class="flt" id="ageCatF" onchange="renderAgeing()"><option value="">All Categories</option></select>
+          <select class="flt" id="ageBrandF" onchange="renderAgeing()"><option value="">All Brands</option></select>
+          <select class="flt" id="ageGroupF" onchange="renderAgeing()">
+            <option value="">All Age Groups</option>
+            <option value="0-30">0–30 days (Fresh)</option>
+            <option value="31-90">31–90 days</option>
+            <option value="91-180">91–180 days</option>
+            <option value="181-365">181 days–1 year</option>
+            <option value="365+">Over 1 year</option>
+          </select>
+          <select class="flt" id="ageSort" onchange="renderAgeing()">
+            <option value="age_desc">Oldest First</option>
+            <option value="age_asc">Newest First</option>
+            <option value="code">Code A-Z</option>
+            <option value="category">Category</option>
+            <option value="qty_desc">Qty ↓</option>
+          </select>
+          <input class="srch" id="ageSrch" placeholder="Search..." oninput="renderAgeing()"/>
+        </div>
+      </div>
+      <!-- Summary cards -->
+      <div class="stats" id="ageSummary" style="grid-template-columns:repeat(5,1fr);margin-bottom:13px"></div>
+      <!-- Ageing legend -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:12px">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#22c55e;border-radius:2px;display:inline-block"></span> 0–30 days</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#84cc16;border-radius:2px;display:inline-block"></span> 31–90 days</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#f59e0b;border-radius:2px;display:inline-block"></span> 91–180 days</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#f97316;border-radius:2px;display:inline-block"></span> 181–365 days</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#ef4444;border-radius:2px;display:inline-block"></span> Over 1 year</span>
+      </div>
+      <!-- Table -->
+      <div class="tw">
+        <div class="ts">
+          <table style="table-layout:auto">
+            <thead id="ageThead">
+              <tr>
+                <th onclick="ageSort('product_code')" class="sortable" style="cursor:pointer">Code</th>
+                <th onclick="ageSort('category')" class="sortable" style="cursor:pointer">Category</th>
+                <th onclick="ageSort('brand')" class="sortable" style="cursor:pointer">Brand</th>
+                <th onclick="ageSort('product_desc')" class="sortable" style="cursor:pointer">Description</th>
+                <th onclick="ageSort('batch_date')" class="sortable" style="cursor:pointer">Stock-In Date</th>
+                <th onclick="ageSort('batch_qty')" class="sortable" style="cursor:pointer">Batch Qty</th>
+                <th onclick="ageSort('remaining_qty')" class="sortable" style="cursor:pointer">Remaining Qty</th>
+                <th onclick="ageSort('age_days')" class="sortable" style="cursor:pointer">Age (Days)</th>
+                <th>Age Band</th>
+                <th onclick="ageSort('invoice_no')" class="sortable" style="cursor:pointer">Invoice No</th>
+                <th onclick="ageSort('waybill_no')" class="sortable" style="cursor:pointer">Waybill</th>
+              </tr>
+            </thead>
+            <tbody id="ageTbl"></tbody>
+            <tfoot id="ageFoot"></tfoot>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -813,6 +919,9 @@ let exSel=new Set(),stmtSel=new Set();
 let _imgData=null,_invData=null,_dcData=null;
 let _modalBasis='landed',_colEditTab=null,_colEditState=null;
 
+// ── COMPANY LOGO ──────────────────────────────────────
+const LOGO_B64='data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAPoA+gDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AIyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//Z';
+
 // Low stock threshold helper (per-product min_qty, default 2)
 function getLowThreshold(p){ return p.min_qty!=null&&p.min_qty>0?p.min_qty:2; }
 function getStockStatus(p){
@@ -1056,10 +1165,10 @@ function showTab(name){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   g('t-'+name).classList.add('active');
   document.querySelectorAll('.ni').forEach(n=>{if(n.textContent.toLowerCase().includes(name.slice(0,5)))n.classList.add('active');});
-  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>{showMvDir(0);},bulkupload:()=>{}})[name]?.();
+  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>{showMvDir(0);},bulkupload:()=>{},ageing:()=>renderAgeing()})[name]?.();
 }
 function renderAll(){renderDash();popFilters();renderProducts();renderStock();if(cu?.role==='admin'){renderPricing();renderUsers();}popStmtFilters();renderStatement();popExFilters();renderExport();renderChangelog();renderMv(_mvSecActive);}
-function popAllFilters(){popFilters();popStmtFilters();popExFilters();}
+function popAllFilters(){popFilters();popStmtFilters();popExFilters();popAgeFilters();}
 
 // ══════════════════════════════════════════════════════
 // DASHBOARD
@@ -1454,35 +1563,100 @@ async function savePricing(){
 // ══════════════════════════════════════════════════════
 // STATEMENT
 // ══════════════════════════════════════════════════════
+// Track selected cats/brands for multi-select statement filters
+let _stmtSelCats=new Set();
+let _stmtSelBrands=new Set();
+
+function buildStmtCheckPicker(elId, vals, selSet, label){
+  const el=g(elId);if(!el)return;
+  // Keep existing selections that are still valid
+  const validVals=new Set(vals);
+  [...selSet].forEach(v=>{if(!validVals.has(v))selSet.delete(v);});
+  // If nothing selected, select all
+  if(selSet.size===0)vals.forEach(v=>selSet.add(v));
+  el.innerHTML=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:1px 0;color:var(--text2);border-bottom:1px solid var(--border);margin-bottom:3px;padding-bottom:3px">
+      <input type="checkbox" id="${elId}_all" onchange="stmtPickerToggleAll('${elId}','${elId==='stmtCatPicker'?'cat':'brand'}')" ${selSet.size===vals.length?'checked':''}/>
+      <em>All ${label}</em></label>`+
+    vals.map(v=>`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:1px 0">
+      <input type="checkbox" value="${v}" onchange="stmtPickerChange('${elId==='stmtCatPicker'?'cat':'brand'}','${v}',this)" ${selSet.has(v)?'checked':''}/>
+      <span>${v}</span></label>`).join('');
+}
+
+function stmtPickerChange(type,val,el){
+  const selSet=type==='cat'?_stmtSelCats:_stmtSelBrands;
+  el.checked?selSet.add(val):selSet.delete(val);
+  // Update "all" checkbox
+  const allEl=g(type==='cat'?'stmtCatPicker_all':'stmtBrandPicker_all');
+  if(allEl){const total=type==='cat'?[...new Set(products.map(p=>p.category))].length:[...new Set(products.map(p=>p.brand))].length;allEl.checked=selSet.size===total;}
+  renderStatement();
+}
+
+function stmtPickerToggleAll(elId,type){
+  const selSet=type==='cat'?_stmtSelCats:_stmtSelBrands;
+  const allEl=g(elId+'_all');
+  const vals=type==='cat'?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
+  if(allEl?.checked)vals.forEach(v=>selSet.add(v));else selSet.clear();
+  buildStmtCheckPicker(elId,vals,selSet,type==='cat'?'Categories':'Brands');
+  renderStatement();
+}
+
+function resetStmtFilters(){
+  _stmtSelCats=new Set();_stmtSelBrands=new Set();
+  // re-init with all selected
+  const cats=[...new Set(products.map(p=>p.category))].sort();
+  const brands=[...new Set(products.map(p=>p.brand))].sort();
+  cats.forEach(c=>_stmtSelCats.add(c));brands.forEach(b=>_stmtSelBrands.add(b));
+  const si=g('stmtStIn'),sl=g('stmtStLow'),so=g('stmtStOut');
+  if(si)si.checked=true;if(sl)sl.checked=true;if(so)so.checked=true;
+  sv('stmtSrch','');sv('stmtBasis','none');
+  buildStmtCheckPicker('stmtCatPicker',cats,_stmtSelCats,'Categories');
+  buildStmtCheckPicker('stmtBrandPicker',brands,_stmtSelBrands,'Brands');
+  renderStatement();
+}
+
 function popStmtFilters(){
-  ['stmtCat','stmtBrand'].forEach(id=>{const el=g(id),v=el.value;const vals=[...new Set(products.map(p=>id==='stmtCat'?p.category:p.brand))].sort();el.innerHTML=(id==='stmtCat'?'<option value="">All Categories</option>':'<option value="">All Brands</option>')+vals.map(x=>`<option>${x}</option>`).join('');el.value=v;});
+  const cats=[...new Set(products.map(p=>p.category))].sort();
+  const brands=[...new Set(products.map(p=>p.brand))].sort();
+  // Init sets if empty
+  if(_stmtSelCats.size===0)cats.forEach(c=>_stmtSelCats.add(c));
+  if(_stmtSelBrands.size===0)brands.forEach(b=>_stmtSelBrands.add(b));
+  buildStmtCheckPicker('stmtCatPicker',cats,_stmtSelCats,'Categories');
+  buildStmtCheckPicker('stmtBrandPicker',brands,_stmtSelBrands,'Brands');
   // hide price basis selector for users without pricing access
   const basisEl=g('stmtBasis');
   if(basisEl)basisEl.style.display=(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price))?'':'none';
   const expBtns=g('stmtExportBtns');
   if(expBtns)expBtns.style.display=(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price))?'flex':'none';
-  // hide export buttons if no pricing access
-  const stmtExBtns=document.querySelectorAll('#t-statement .btn-ghost');
-  stmtExBtns.forEach(b=>{if(b.textContent.includes('Excel')||b.textContent.includes('PDF'))b.style.display=(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price)||b.closest('.mft'))?'':'none';});
 }
 function buildStmtRows(src,basis){
   return src.map(p=>{const pr=_dbPricing[p.id];const up=pr?parseFloat(pr[basis]||0):0;return{...p,up,sv:up*p.qty,status:getStatusLabel(p)};});
 }
 function renderStatement(){
-  const basis=gv('stmtBasis')||'landed';
-  const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();
+  const basisRaw=gv('stmtBasis')||'none';
+  const basis=basisRaw==='none'?'landed':basisRaw;
+  const showPriceCols=basisRaw!=='none'&&(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price));
+  const s=gv('stmtSrch').toLowerCase();
+  const stIn=g('stmtStIn')?.checked!==false;
+  const stLow=g('stmtStLow')?.checked!==false;
+  const stOut=g('stmtStOut')?.checked!==false;
   const fl=products.filter(p=>{
-    if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;
-    if(status==='in'&&getStockStatus(p)!=='in')return false;if(status==='low'&&getStockStatus(p)!=='low')return false;
-    if(status==='out'&&p.qty!==0)return false;
+    // Multi-select category
+    if(_stmtSelCats.size>0&&!_stmtSelCats.has(p.category))return false;
+    // Multi-select brand
+    if(_stmtSelBrands.size>0&&!_stmtSelBrands.has(p.brand))return false;
+    // Status checkboxes
+    const st=getStockStatus(p);
+    if(st==='in'&&!stIn)return false;
+    if(st==='low'&&!stLow)return false;
+    if(st==='out'&&!stOut)return false;
     if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;
     return true;
   });
   const rows=buildStmtRows(fl,basis);
   const tq=rows.reduce((s,r)=>s+r.qty,0),tv=rows.reduce((s,r)=>s+r.sv,0),wp=rows.filter(r=>r.up>0).length;
-  const _sp=cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price);
+  const _sp=showPriceCols;
   g('stmtSummary').innerHTML=`<div class="stmt-card"><div class="stmt-card-label">Products</div><div class="stmt-card-val">${rows.length}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Units</div><div class="stmt-card-val" style="color:var(--accent)">${tq}</div></div>${_sp?`<div class="stmt-card"><div class="stmt-card-label">Priced</div><div class="stmt-card-val" style="color:var(--green)">${wp}</div></div><div class="stmt-card"><div class="stmt-card-label">Total Value (${PL[basis]})</div><div class="stmt-card-val" style="color:var(--accent)">${fmt(tv)}</div></div>`:'<div class="stmt-card"><div class="stmt-card-label">Note</div><div class="stmt-card-val" style="font-size:13px;color:var(--text2)">No pricing access</div></div>'}`;
-  const showPrice=cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price);
+  const showPrice=showPriceCols;
   const stmtCols=[
     {key:'code',label:'Code'},{key:'category',label:'Category'},{key:'brand',label:'Brand'},
     {key:'variant',label:'Variant'},{key:'short_desc',label:'Product'},{key:'qty',label:'Qty'},
@@ -1500,21 +1674,44 @@ function renderStatement(){
   g('stmtFoot').innerHTML=`<tr style="background:var(--bg3)"><td></td><td colspan="${stmtCols.length-1}" style="font-weight:700;padding:9px 10px">TOTAL (${rows.length} products)</td><td style="font-weight:700">${tq}</td>${showPrice?`<td></td><td style="font-weight:700;font-size:15px;color:var(--accent)">${fmt(tv)}</td>`:''}</tr>`;
 }
 function toggleStmtSel(el){document.querySelectorAll('#stmtTbl input[type=checkbox]').forEach(cb=>cb.checked=el.checked);const fl=products.filter(p=>{const cat=gv('stmtCat'),brand=gv('stmtBrand');return(!cat||p.category===cat)&&(!brand||p.brand===brand);});if(el.checked)fl.forEach(p=>stmtSel.add(p.id));else stmtSel.clear();}
-function getStmtRows(){const basis=gv('stmtBasis')||'landed';const cat=gv('stmtCat'),brand=gv('stmtBrand'),status=gv('stmtStatus'),s=gv('stmtSrch').toLowerCase();const src=products.filter(p=>{if(cat&&p.category!==cat)return false;if(brand&&p.brand!==brand)return false;if(status==='in'&&getStockStatus(p)!=='in')return false;if(status==='low'&&getStockStatus(p)!=='low')return false;if(status==='out'&&p.qty!==0)return false;if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;return true;});return{rows:buildStmtRows(stmtSel.size?src.filter(p=>stmtSel.has(p.id)):src,basis),basis};}
-function exportStmtExcel(){const{rows,basis}=getStmtRows();exportStmtRowsExcel(rows,basis);}
-function exportStmtPDF(){const{rows,basis}=getStmtRows();exportStmtRowsPDF(rows,basis,stmtSel.size?'Selected':(gv('stmtCat')||'All Products'));}
-function exportStmtRowsExcel(rows,basis){
-  const h=['Code','Category','Brand','Variant','Short Desc','Qty','Status',`Unit Price (${PL[basis]}) ₹`,'Stock Value ₹'];
-  const d=[h,...rows.map(r=>[r.code,r.category,r.brand,r.variant||'',r.short_desc,r.qty,r.status,r.up.toFixed(2),r.sv.toFixed(2)])];
-  d.push(['','','','','TOTAL',rows.reduce((s,r)=>s+r.qty,0),'','',rows.reduce((s,r)=>s+r.sv,0).toFixed(2)]);
+function getStmtRows(){
+  const basisRaw=gv('stmtBasis')||'none';
+  const basis=basisRaw==='none'?'landed':basisRaw;
+  const s=gv('stmtSrch').toLowerCase();
+  const stIn=g('stmtStIn')?.checked!==false,stLow=g('stmtStLow')?.checked!==false,stOut=g('stmtStOut')?.checked!==false;
+  const src=products.filter(p=>{
+    if(_stmtSelCats.size>0&&!_stmtSelCats.has(p.category))return false;
+    if(_stmtSelBrands.size>0&&!_stmtSelBrands.has(p.brand))return false;
+    const st=getStockStatus(p);
+    if(st==='in'&&!stIn)return false;if(st==='low'&&!stLow)return false;if(st==='out'&&!stOut)return false;
+    if(s&&!(p.code+p.short_desc+p.category+p.brand).toLowerCase().includes(s))return false;
+    return true;
+  });
+  return{rows:buildStmtRows(stmtSel.size?src.filter(p=>stmtSel.has(p.id)):src,basis),basis,showPrice:basisRaw!=='none'};
+}
+function exportStmtExcel(){const{rows,basis,showPrice}=getStmtRows();exportStmtRowsExcel(rows,basis,showPrice);}
+function exportStmtPDF(){const{rows,basis,showPrice}=getStmtRows();exportStmtRowsPDF(rows,basis,showPrice,[..._stmtSelCats].join(', ')||'All Products');}
+function exportStmtRowsExcel(rows,basis,showPrice=true){
+  const hp=showPrice&&(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price));
+  const h=hp?['Code','Category','Brand','Variant','Short Desc','Qty','Status',`Unit Price (${PL[basis]}) ₹`,'Stock Value ₹']:['Code','Category','Brand','Variant','Short Desc','Qty','Status'];
+  const d=[h,...rows.map(r=>hp?[r.code,r.category,r.brand,r.variant||'',r.short_desc,r.qty,r.status,r.up.toFixed(2),r.sv.toFixed(2)]:[r.code,r.category,r.brand,r.variant||'',r.short_desc,r.qty,r.status])];
+  if(hp)d.push(['','','','','TOTAL',rows.reduce((s,r)=>s+r.qty,0),'','',rows.reduce((s,r)=>s+r.sv,0).toFixed(2)]);
+  else d.push(['','','','','TOTAL',rows.reduce((s,r)=>s+r.qty,0),'']);
   const ws=XLSX.utils.aoa_to_sheet(d);ws['!cols']=h.map(()=>({wch:20}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Statement');
   XLSX.writeFile(wb,`Visdil_Statement_${yyyymmdd()}.xlsx`);notif('Excel downloaded!','s');
 }
-function exportStmtRowsPDF(rows,basis,scope){
+function exportStmtRowsPDF(rows,basis,showPrice=true,scope=''){
+  const hp=showPrice&&(cu?.role==='admin'||!!(cu?.seePrice||cu?.see_price));
   const tq=rows.reduce((s,r)=>s+r.qty,0),tv=rows.reduce((s,r)=>s+r.sv,0);
-  const trs=rows.map(r=>{const c=getStockStatus(r)==='out'?'#dc2626':getStockStatus(r)==='low'?'#d97706':'#059669';return `<tr><td>${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||''}</td><td>${r.short_desc}</td><td style="font-weight:700">${r.qty}</td><td style="color:${c}">${r.status}</td><td>${r.up>0?'₹'+r.up.toFixed(2):'—'}</td><td style="font-weight:700;color:#1e40af">${r.up>0?'₹'+r.sv.toFixed(2):'—'}</td></tr>`;}).join('');
-  printPage(`Stock Statement — ${PL[basis]}`,`<p style="margin-bottom:8px;font-size:9px;color:#555">Scope: ${scope} | Basis: ${PL[basis]} | Products: ${rows.length} | Units: ${tq} | Value: ₹${tv.toLocaleString('en-IN',{minimumFractionDigits:2})}</p><table><thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th><th>Unit Price</th><th>Stock Value</th></tr></thead><tbody>${trs}</tbody><tfoot><tr style="background:#e0e7ff"><td colspan="5" style="font-weight:700">TOTAL</td><td style="font-weight:700">${tq}</td><td></td><td></td><td style="font-weight:700;color:#1e40af">₹${tv.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr></tfoot></table>`);
+  const trs=rows.map(r=>{
+    const c=getStockStatus(r)==='out'?'#dc2626':getStockStatus(r)==='low'?'#d97706':'#059669';
+    return `<tr><td>${r.code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.variant||''}</td><td>${r.short_desc}</td><td style="font-weight:700">${r.qty}</td><td style="color:${c}">${r.status}</td>${hp?`<td>${r.up>0?'₹'+r.up.toFixed(2):'—'}</td><td style="font-weight:700;color:#1e40af">${r.up>0?'₹'+r.sv.toFixed(2):'—'}</td>`:''}</tr>`;
+  }).join('');
+  const priceLabel=hp?` | Basis: ${PL[basis]} | Value: ₹${tv.toLocaleString('en-IN',{minimumFractionDigits:2})}`:'';
+  const priceHead=hp?'<th>Unit Price</th><th>Stock Value</th>':'';
+  const priceFoot=hp?`<td></td><td style="font-weight:700;color:#1e40af">₹${tv.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:'';
+  printPage(`Stock Statement${hp?' — '+PL[basis]:''}`,`<p style="margin-bottom:8px;font-size:9px;color:#555">Scope: ${scope||'All'} | Products: ${rows.length} | Units: ${tq}${priceLabel}</p><table><thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Variant</th><th>Product</th><th>Qty</th><th>Status</th>${priceHead}</tr></thead><tbody>${trs}</tbody><tfoot><tr style="background:#e0e7ff"><td colspan="5" style="font-weight:700">TOTAL</td><td style="font-weight:700">${tq}</td><td></td>${priceFoot}</tr></tfoot></table>`);
 }
 
 // ══════════════════════════════════════════════════════
@@ -1725,7 +1922,28 @@ function exportInvPDF(rows){
 // ══════════════════════════════════════════════════════
 function printPage(title,body){
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Visdil — ${title}</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0;padding:0}.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e3a8a;padding-bottom:7px;margin-bottom:9px}.hdr h2{font-size:13px;color:#1e3a8a;margin:0 0 2px}.hdr p{color:#666;font-size:8px;margin:0}table{border-collapse:collapse;width:100%;margin-bottom:7px}th{background:#1e3a8a;color:#fff;padding:5px 6px;text-align:left;font-size:8px;font-weight:600}td{padding:4px 6px;border-bottom:1px solid #e5e7eb;font-size:8px;word-wrap:break-word;vertical-align:top}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#e0e7ff;font-weight:700}.sum{padding:6px 9px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:8px;font-weight:600}</style></head><body><div class="hdr"><div><h2>📦 Visdil Inventory — ${title}</h2><p>Generated: ${new Date().toLocaleString()} · By: ${cu?.name}</p></div><div style="text-align:right;font-size:8px;color:#444">Total Products: ${products.length}</div></div>${body}</body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Visdil — ${title}</title><style>
+    @page{size:A4 landscape;margin:10mm}
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:9px;color:#111;margin:0;padding:0}
+    .logo-hdr{text-align:center;margin-bottom:8px;padding-bottom:8px;border-bottom:2px solid #1e3a8a}
+    .logo-hdr img{height:38px;object-fit:contain;display:block;margin:0 auto 4px}
+    .logo-hdr .report-title{font-size:12px;font-weight:700;color:#1e3a8a;margin-bottom:2px}
+    .logo-hdr .report-meta{font-size:8px;color:#666}
+    table{border-collapse:collapse;width:100%;margin-bottom:7px}
+    th{background:#1e3a8a;color:#fff;padding:5px 6px;text-align:left;font-size:8px;font-weight:600}
+    td{padding:4px 6px;border-bottom:1px solid #e5e7eb;font-size:8px;word-wrap:break-word;vertical-align:top}
+    tr:nth-child(even) td{background:#f8fafc}
+    tfoot td{background:#e0e7ff;font-weight:700}
+    .sum{padding:6px 9px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;font-size:8px;font-weight:600}
+  </style></head><body>
+  <div class="logo-hdr">
+    <img src="${LOGO_B64}" alt="Visdil" />
+    <div class="report-title">${title}</div>
+    <div class="report-meta">Generated: ${new Date().toLocaleString('en-IN')} &nbsp;·&nbsp; By: ${cu?.name||''} &nbsp;·&nbsp; Total Products: ${products.length}</div>
+  </div>
+  ${body}
+  </body></html>`);
   w.document.close();setTimeout(()=>w.print(),500);
 }
 
@@ -2608,6 +2826,303 @@ async function confirmBulkUpload(){
     showTab('products');
   }catch(e){notif('Upload failed: '+e.message,'e');}
   finally{setBtnLoad('bulkConfirmBtn',null,'✓ Upload to Database');}
+}
+
+
+
+// ══════════════════════════════════════════════════════
+// AGEING REPORT
+// ══════════════════════════════════════════════════════
+let _ageRows=[];          // computed ageing rows
+let _ageSortCol='age_days';
+let _ageSortDir=-1;       // -1 = oldest first by default
+
+// Age band config
+function getAgeBand(days){
+  if(days<=30)  return {label:'0–30 days',   color:'#22c55e', bg:'rgba(34,197,94,.12)',   key:'b30'};
+  if(days<=90)  return {label:'31–90 days',  color:'#84cc16', bg:'rgba(132,204,22,.12)',  key:'b90'};
+  if(days<=180) return {label:'91–180 days', color:'#f59e0b', bg:'rgba(245,158,11,.12)',  key:'b180'};
+  if(days<=365) return {label:'181–365 days',color:'#f97316', bg:'rgba(249,115,22,.12)',  key:'b365'};
+  return          {label:'Over 1 year',       color:'#ef4444', bg:'rgba(239,68,68,.12)',   key:'b365p'};
+}
+
+function daysBetween(dateA, dateB){
+  return Math.floor((dateB - dateA) / (1000*60*60*24));
+}
+
+// Build ageing rows from movement_log stock_in entries
+// Each stock_in is a batch. Remaining qty = batch qty - outward qty after that date for same product
+function buildAgeingRows(){
+  const today=new Date();
+  today.setHours(0,0,0,0);
+  const rows=[];
+
+  // Get all stock_in entries
+  const inEntries=_mvData.filter(r=>r.movement_type==='stock_in');
+
+  // Get all outward entries (sale, test_return, other) per product
+  const outByProduct={};
+  _mvData.filter(r=>['sale','test_return','other'].includes(r.movement_type)).forEach(r=>{
+    if(!r.product_id)return;
+    if(!outByProduct[r.product_id])outByProduct[r.product_id]=[];
+    outByProduct[r.product_id].push({date:new Date(r.movement_date),qty:Math.abs(r.qty_change)});
+  });
+
+  // For each product, sort its in-entries by date and allocate outward qty using FIFO
+  const productInMap={};
+  inEntries.forEach(r=>{
+    if(!r.product_id)return;
+    if(!productInMap[r.product_id])productInMap[r.product_id]=[];
+    productInMap[r.product_id].push({...r,batchDate:new Date(r.movement_date)});
+  });
+
+  Object.entries(productInMap).forEach(([pid,batches])=>{
+    // Sort batches oldest first for FIFO
+    batches.sort((a,b)=>a.batchDate-b.batchDate);
+    const prod=products.find(x=>x.id===pid);
+    if(!prod)return;
+
+    // Calculate total outward qty per batch using FIFO
+    let remainingOutward=(outByProduct[pid]||[]).reduce((s,o)=>s+o.qty,0);
+    // Also account for corrections_down
+    const corrDown=_mvData.filter(r=>r.product_id===pid&&r.movement_type==='correction_down');
+    corrDown.forEach(r=>{ remainingOutward+=Math.abs(r.qty_change); });
+    // correction_up adds back
+    const corrUp=_mvData.filter(r=>r.product_id===pid&&r.movement_type==='correction_up');
+    corrUp.forEach(r=>{ remainingOutward-=r.qty_change; });
+    if(remainingOutward<0)remainingOutward=0;
+
+    // FIFO: consume outward from oldest batch first
+    batches.forEach(b=>{
+      let batchQty=b.qty_change||0;
+      if(batchQty<=0)return; // skip zero/negative
+      let consumed=Math.min(batchQty,remainingOutward);
+      remainingOutward=Math.max(0,remainingOutward-consumed);
+      const remaining=batchQty-consumed;
+      const ageDays=daysBetween(b.batchDate,today);
+      const band=getAgeBand(ageDays);
+      rows.push({
+        id:b.id,
+        product_id:pid,
+        product_code:b.product_code||prod.code,
+        product_desc:b.product_desc||prod.short_desc,
+        category:prod.category,
+        brand:prod.brand,
+        variant:prod.variant||'',
+        batch_date:b.movement_date,
+        batch_qty:batchQty,
+        remaining_qty:remaining,
+        consumed_qty:consumed,
+        age_days:ageDays,
+        band,
+        invoice_no:b.invoice_no||'',
+        invoice_date:b.invoice_date||'',
+        waybill_no:b.waybill_no||'',
+        dc_no:b.dc_no||'',
+        remarks:b.remarks||'',
+      });
+    });
+  });
+
+  // Also handle products that have no movement_log entries
+  // (added before this feature was built) — use product entry_time as fallback
+  products.forEach(prod=>{
+    const hasEntries=rows.some(r=>r.product_id===prod.id);
+    if(!hasEntries&&prod.qty>0){
+      const batchDate=new Date(prod.entry_time||prod.created_at||new Date());
+      const ageDays=daysBetween(batchDate,today);
+      const band=getAgeBand(ageDays);
+      rows.push({
+        id:'fallback_'+prod.id,
+        product_id:prod.id,
+        product_code:prod.code,
+        product_desc:prod.short_desc,
+        category:prod.category,
+        brand:prod.brand,
+        variant:prod.variant||'',
+        batch_date:prod.entry_time||prod.created_at,
+        batch_qty:prod.qty,
+        remaining_qty:prod.qty,
+        consumed_qty:0,
+        age_days:ageDays,
+        band,
+        invoice_no:prod.invoice_no||'',
+        invoice_date:prod.invoice_date||'',
+        waybill_no:prod.dc_waybill||'',
+        dc_no:'',
+        remarks:'(entry time used — no movement log)',
+        _isFallback:true,
+      });
+    }
+  });
+
+  _ageRows=rows;
+  return rows;
+}
+
+function ageSort(col){
+  if(_ageSortCol===col){_ageSortDir*=-1;}
+  else{_ageSortCol=col;_ageSortDir=1;}
+  renderAgeing();
+}
+
+function popAgeFilters(){
+  const cats=[...new Set(products.map(p=>p.category))].sort();
+  const brands=[...new Set(products.map(p=>p.brand))].sort();
+  const ac=g('ageCatF'),ab=g('ageBrandF');
+  if(ac){const v=ac.value;ac.innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option>${c}</option>`).join('');ac.value=v;}
+  if(ab){const v=ab.value;ab.innerHTML='<option value="">All Brands</option>'+brands.map(b=>`<option>${b}</option>`).join('');ab.value=v;}
+}
+
+function renderAgeing(){
+  popAgeFilters();
+  buildAgeingRows();
+  const cat=gv('ageCatF'),brand=gv('ageBrandF'),grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
+  const sortKey=gv('ageSort')||'';
+
+  let rows=_ageRows.filter(r=>r.remaining_qty>0); // only show rows with stock remaining
+
+  // Filters
+  if(cat)rows=rows.filter(r=>r.category===cat);
+  if(brand)rows=rows.filter(r=>r.brand===brand);
+  if(grp){
+    const [lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);
+    rows=rows.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));
+  }
+  if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.category+r.brand+r.invoice_no+r.waybill_no).toLowerCase().includes(s));
+
+  // Sort
+  const effectiveCol=sortKey==='age_desc'?'age_days':sortKey==='age_asc'?'age_days':sortKey==='qty_desc'?'remaining_qty':sortKey||_ageSortCol;
+  const effectiveDir=sortKey==='age_asc'?1:sortKey==='age_desc'?-1:sortKey==='qty_desc'?-1:_ageSortDir;
+  rows=[...rows].sort((a,b)=>{
+    let av=a[effectiveCol]??'',bv=b[effectiveCol]??'';
+    if(typeof av==='number')return effectiveDir*(av-bv);
+    return effectiveDir*String(av).localeCompare(String(bv));
+  });
+
+  // Summary cards
+  const totalBatches=rows.length;
+  const totalQty=rows.reduce((s,r)=>s+r.remaining_qty,0);
+  const fresh=rows.filter(r=>r.age_days<=30).reduce((s,r)=>s+r.remaining_qty,0);
+  const old=rows.filter(r=>r.age_days>180&&r.age_days<=365).reduce((s,r)=>s+r.remaining_qty,0);
+  const veryOld=rows.filter(r=>r.age_days>365).reduce((s,r)=>s+r.remaining_qty,0);
+  g('ageSummary').innerHTML=`
+    <div class="sc"><div class="sc-label">Total Batches</div><div class="sc-val">${totalBatches}</div></div>
+    <div class="sc"><div class="sc-label">Total Stock Units</div><div class="sc-val" style="color:var(--accent)">${totalQty}</div></div>
+    <div class="sc"><div class="sc-label">Fresh (≤30 days)</div><div class="sc-val" style="color:#22c55e">${fresh}</div></div>
+    <div class="sc"><div class="sc-label">181–365 days</div><div class="sc-val" style="color:#f97316">${old}</div></div>
+    <div class="sc"><div class="sc-label">Over 1 Year</div><div class="sc-val" style="color:var(--red)">${veryOld}</div></div>`;
+
+  // Update thead sort indicators
+  const thead=g('ageThead');
+  if(thead){
+    const colMap={product_code:'Code',category:'Category',brand:'Brand',product_desc:'Description',batch_date:'Stock-In Date',batch_qty:'Batch Qty',remaining_qty:'Remaining Qty',age_days:'Age (Days)',invoice_no:'Invoice No',waybill_no:'Waybill'};
+    thead.innerHTML='<tr>'+Object.entries(colMap).map(([k,l])=>{
+      const isSort=effectiveCol===k;
+      const arr=isSort?(effectiveDir===1?' ↑':' ↓'):'';
+      return `<th class="sortable" onclick="ageSort('${k}')" style="cursor:pointer">${l}${arr}</th>`;
+    }).join('')+'<th>Age Band</th></tr>';
+  }
+
+  if(!rows.length){
+    g('ageTbl').innerHTML=`<tr><td colspan="11" style="text-align:center;padding:28px;color:var(--text3)">No ageing data found. Add products and stock-in entries to see ageing.</td></tr>`;
+    g('ageFoot').innerHTML='';
+    return;
+  }
+
+  const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
+  g('ageTbl').innerHTML=rows.map(r=>{
+    const band=r.band;
+    const pct=r.batch_qty>0?Math.round((r.remaining_qty/r.batch_qty)*100):0;
+    return `<tr>
+      <td style="font-family:monospace;color:var(--accent);font-size:12px">${r.product_code}</td>
+      <td>${r.category}</td>
+      <td>${r.brand}</td>
+      <td>${r.product_desc}${r.variant?`<br><span style="font-size:11px;color:var(--text2)">${r.variant}</span>`:''}</td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${fmtD(r.batch_date)}</td>
+      <td style="font-weight:700;color:var(--accent)">${r.batch_qty}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-weight:700;color:${band.color}">${r.remaining_qty}</span>
+          <div style="width:50px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${band.color};border-radius:3px"></div>
+          </div>
+          <span style="font-size:10px;color:var(--text2)">${pct}%</span>
+        </div>
+      </td>
+      <td style="font-weight:700;color:${band.color}">${r.age_days}</td>
+      <td><span style="background:${band.bg};color:${band.color};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${band.label}</span></td>
+      <td style="font-size:12px">${r.invoice_no||'—'}</td>
+      <td style="font-size:12px">${r.waybill_no||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Totals footer
+  const ftq=rows.reduce((s,r)=>s+r.batch_qty,0);
+  const frq=rows.reduce((s,r)=>s+r.remaining_qty,0);
+  g('ageFoot').innerHTML=`<tr style="background:var(--bg3);font-weight:700">
+    <td colspan="4" style="padding:8px 10px">TOTAL (${rows.length} batches, ${[...new Set(rows.map(r=>r.product_id))].length} products)</td>
+    <td></td><td>${ftq}</td><td>${frq}</td><td></td><td></td><td></td><td></td>
+  </tr>`;
+}
+
+// ── EXPORTS ──────────────────────────────────────────
+function getAgeExportRows(){
+  const cat=gv('ageCatF'),brand=gv('ageBrandF'),grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
+  let rows=_ageRows.filter(r=>r.remaining_qty>0);
+  if(cat)rows=rows.filter(r=>r.category===cat);
+  if(brand)rows=rows.filter(r=>r.brand===brand);
+  if(grp){const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);rows=rows.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));}
+  if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.category+r.brand+r.invoice_no+r.waybill_no).toLowerCase().includes(s));
+  return rows;
+}
+
+function exportAgeingExcel(){
+  const rows=getAgeExportRows();
+  if(!rows.length){notif('No data to export','e');return;}
+  const h=['Code','Category','Brand','Description','Variant','Stock-In Date','Batch Qty','Remaining Qty','Consumed Qty','Age (Days)','Age Band','Invoice No','Invoice Date','Waybill','DC No','Remarks'];
+  const d=[h,...rows.map(r=>[
+    r.product_code,r.category,r.brand,r.product_desc,r.variant,
+    r.batch_date?new Date(r.batch_date).toLocaleDateString('en-IN'):'',
+    r.batch_qty,r.remaining_qty,r.consumed_qty,r.age_days,r.band.label,
+    r.invoice_no,r.invoice_date?new Date(r.invoice_date).toLocaleDateString('en-IN'):'',
+    r.waybill_no,r.dc_no,r.remarks
+  ])];
+  // Add totals row
+  d.push(['TOTAL','','','','','',
+    rows.reduce((s,r)=>s+r.batch_qty,0),
+    rows.reduce((s,r)=>s+r.remaining_qty,0),
+    rows.reduce((s,r)=>s+r.consumed_qty,0),
+    '','','','','','',''
+  ]);
+  const ws=XLSX.utils.aoa_to_sheet(d);
+  ws['!cols']=h.map(()=>({wch:18}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Ageing Report');
+  XLSX.writeFile(wb,`Visdil_Ageing_${yyyymmdd()}.xlsx`);notif('Ageing report downloaded!','s');
+}
+
+function exportAgeingPDF(){
+  const rows=getAgeExportRows();
+  if(!rows.length){notif('No data to export','e');return;}
+  const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
+  const trs=rows.map(r=>`<tr>
+    <td>${r.product_code}</td><td>${r.category}</td><td>${r.brand}</td><td>${r.product_desc}</td>
+    <td>${fmtD(r.batch_date)}</td>
+    <td style="font-weight:700">${r.batch_qty}</td>
+    <td style="font-weight:700;color:${r.band.color}">${r.remaining_qty}</td>
+    <td style="font-weight:700;color:${r.band.color}">${r.age_days}</td>
+    <td style="color:${r.band.color};font-weight:600">${r.band.label}</td>
+    <td>${r.invoice_no||''}</td><td>${r.waybill_no||''}</td>
+  </tr>`).join('');
+  const totalBatch=rows.reduce((s,r)=>s+r.batch_qty,0);
+  const totalRem=rows.reduce((s,r)=>s+r.remaining_qty,0);
+  printPage('Stock Ageing Report',`
+    <p style="margin-bottom:8px;font-size:9px;color:#555">Batches: ${rows.length} | Products: ${[...new Set(rows.map(r=>r.product_id))].length} | Total Batch Qty: ${totalBatch} | Total Remaining: ${totalRem}</p>
+    <table>
+      <thead><tr><th>Code</th><th>Category</th><th>Brand</th><th>Description</th><th>Stock-In Date</th><th>Batch Qty</th><th>Remaining</th><th>Age Days</th><th>Age Band</th><th>Invoice</th><th>Waybill</th></tr></thead>
+      <tbody>${trs}</tbody>
+      <tfoot><tr style="background:#e0e7ff"><td colspan="5" style="font-weight:700">TOTAL</td><td style="font-weight:700">${totalBatch}</td><td style="font-weight:700">${totalRem}</td><td colspan="4"></td></tr></tfoot>
+    </table>`);
 }
 
 
