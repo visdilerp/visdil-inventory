@@ -162,6 +162,15 @@ input:checked+.tog-s:before{transform:translateX(16px);background:#fff}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+/* COMPACT DROPDOWN PICKER */
+.dpicker{position:relative;display:inline-block}
+.dpicker-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:5px 9px;color:var(--text);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;min-width:110px;justify-content:space-between;white-space:nowrap}
+.dpicker-btn:hover{border-color:var(--accent)}
+.dpicker-menu{position:absolute;top:calc(100% + 3px);left:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:6px;min-width:160px;max-height:220px;overflow-y:auto;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
+.dpicker-menu.open{display:block}
+.dpicker-menu label{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:12px;cursor:pointer;border-radius:3px}
+.dpicker-menu label:hover{background:var(--bg3)}
+.dpicker-actions{display:flex;gap:5px;padding:4px 4px 6px;border-bottom:1px solid var(--border);margin-bottom:4px}
 /* SORTABLE HEADERS */
 th.sortable{cursor:pointer;user-select:none;position:relative}
 th.sortable:hover{color:var(--text);background:var(--bg4)}
@@ -222,10 +231,11 @@ th.col-drop-right{border-right:2px solid var(--accent)}
     <div class="ni active" onclick="showTab('dashboard')">📊 Dashboard</div>
     <div class="ni" onclick="showTab('products')">📋 Products</div>
     <div class="ni" onclick="showTab('stock')">📦 Stock</div>
-    <div class="ni admin-only" style="display:none" onclick="showTab('pricing')">💰 Pricing</div>
+    <div class="ni" id="navPricing" style="display:none" onclick="showTab('pricing')">💰 Pricing</div>
     <div class="ni" onclick="showTab('statement')">📑 Statement</div>
     <div class="ni" onclick="showTab('changelog')">📝 Change Log</div>
     <div class="ni admin-only" style="display:none" onclick="showTab('users')">👥 Users</div>
+    <div class="ni admin-only" style="display:none" onclick="showTab('recycle')">🗑 Recycle Bin</div>
     <div class="ni" onclick="showTab('export')">⬇️ Export</div>
     <div class="ni" id="navMovement" onclick="showTab('movement')">📤 Movement Log</div>
     <div class="ni" id="navBulkUpload" onclick="showTab('bulkupload')">📥 Bulk Upload</div>
@@ -312,12 +322,24 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
           <!-- Multi-select Category -->
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Category</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Category</div>
+              <div style="display:flex;gap:3px">
+                <button class="btn btn-ghost btn-xs" style="padding:1px 5px;font-size:10px" onclick="stmtPickerToggleAll('stmtCatPicker','cat',true)">All</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 5px;font-size:10px" onclick="stmtPickerToggleAll('stmtCatPicker','cat',false)">None</button>
+              </div>
+            </div>
             <div id="stmtCatPicker" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:5px 8px;min-width:140px;max-height:120px;overflow-y:auto;font-size:12px"></div>
           </div>
           <!-- Multi-select Brand -->
           <div style="display:flex;flex-direction:column;gap:3px">
-            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Brand</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;font-weight:600">Brand</div>
+              <div style="display:flex;gap:3px">
+                <button class="btn btn-ghost btn-xs" style="padding:1px 5px;font-size:10px" onclick="stmtPickerToggleAll('stmtBrandPicker','brand',true)">All</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 5px;font-size:10px" onclick="stmtPickerToggleAll('stmtBrandPicker','brand',false)">None</button>
+              </div>
+            </div>
             <div id="stmtBrandPicker" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:5px 8px;min-width:130px;max-height:120px;overflow-y:auto;font-size:12px"></div>
           </div>
           <!-- Multi-select Status -->
@@ -607,8 +629,33 @@ th.col-drop-right{border-right:2px solid var(--accent)}
       <!-- Filters -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:13px">
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <select class="flt" id="ageCatF" onchange="renderAgeing()"><option value="">All Categories</option></select>
-          <select class="flt" id="ageBrandF" onchange="renderAgeing()"><option value="">All Brands</option></select>
+          <!-- Compact Category picker -->
+          <div class="dpicker" id="ageCatDp">
+            <div class="dpicker-btn" onclick="toggleDpicker('ageCatDp')">
+              <span id="ageCatLabel">All Categories</span><span>▾</span>
+            </div>
+            <div class="dpicker-menu" id="ageCatMenu">
+              <div class="dpicker-actions">
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',true)">All</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',false)">None</button>
+              </div>
+              <div id="ageCatItems"></div>
+            </div>
+          </div>
+          <!-- Compact Brand picker -->
+          <div class="dpicker" id="ageBrandDp">
+            <div class="dpicker-btn" onclick="toggleDpicker('ageBrandDp')">
+              <span id="ageBrandLabel">All Brands</span><span>▾</span>
+            </div>
+            <div class="dpicker-menu" id="ageBrandMenu">
+              <div class="dpicker-actions">
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',true)">All</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',false)">None</button>
+              </div>
+              <div id="ageBrandItems"></div>
+            </div>
+          </div>
+          <!-- Age group filter -->
           <select class="flt" id="ageGroupF" onchange="renderAgeing()">
             <option value="">All Age Groups</option>
             <option value="0-30">0–30 days (Fresh)</option>
@@ -660,6 +707,29 @@ th.col-drop-right{border-right:2px solid var(--accent)}
             <tfoot id="ageFoot"></tfoot>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- RECYCLE BIN TAB -->
+    <div class="tab" id="t-recycle">
+      <div class="sh">
+        <div class="stt">🗑 Recycle Bin — Deleted Movement Log Entries</div>
+        <div style="display:flex;gap:6px">
+          <input class="srch" id="recycleSrch" placeholder="Search..." oninput="renderRecycle()"/>
+        </div>
+      </div>
+      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text2)">
+        ⚠️ These entries were deleted. Restoring an entry will <strong>reverse the stock qty change back</strong> to the product. Only admin can restore or permanently delete.
+      </div>
+      <div class="tw">
+        <div class="ts"><table style="table-layout:auto">
+          <thead><tr>
+            <th></th><th>Deleted At</th><th>Type</th><th>Product</th>
+            <th>Qty Change</th><th>Date</th><th>Customer</th>
+            <th>Invoice/DC</th><th>Deleted By</th><th>Reason</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="recycleTbl"></tbody>
+        </table></div>
       </div>
     </div>
 
@@ -1073,6 +1143,10 @@ async function startApp(){
   if(cu.role==='admin'){
     document.querySelectorAll('.admin-only').forEach(el=>el.style.display='');
   }
+  // show pricing tab for users with see_price permission
+  if(cu.see_price||cu.seePrice||cu.role==='admin'){
+    const np=g('navPricing');if(np)np.style.display='';
+  }
   // show add button
   if(cu.canAdd||cu.role==='admin')g('btnAdd').style.display='';
   // show value section
@@ -1096,6 +1170,7 @@ function logout(){
   g('appScreen').style.display='none';
   g('lu').value='';g('lp').value='';
   document.querySelectorAll('.admin-only').forEach(el=>el.style.display='none');
+  const np=g('navPricing');if(np)np.style.display='none';
   document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',i===0));
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===0));
   g('btnAdd').style.display='none';
@@ -1170,7 +1245,7 @@ function showTab(name){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   g('t-'+name).classList.add('active');
   document.querySelectorAll('.ni').forEach(n=>{if(n.textContent.toLowerCase().includes(name.slice(0,5)))n.classList.add('active');});
-  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>{showMvDir(0);},bulkupload:()=>{},ageing:()=>renderAgeing()})[name]?.();
+  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>{showMvDir(0);},bulkupload:()=>{},ageing:()=>renderAgeing(),recycle:()=>renderRecycle()})[name]?.();
 }
 function renderAll(){renderDash();popFilters();renderProducts();renderStock();if(cu?.role==='admin'){renderPricing();renderUsers();}popStmtFilters();renderStatement();popExFilters();renderExport();renderChangelog();renderMv(_mvSecActive);}
 function popAllFilters(){popFilters();popStmtFilters();popExFilters();popAgeFilters();}
@@ -1596,11 +1671,12 @@ function stmtPickerChange(type,val,el){
   renderStatement();
 }
 
-function stmtPickerToggleAll(elId,type){
+function stmtPickerToggleAll(elId,type,forceState){
   const selSet=type==='cat'?_stmtSelCats:_stmtSelBrands;
   const allEl=g(elId+'_all');
   const vals=type==='cat'?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
-  if(allEl?.checked)vals.forEach(v=>selSet.add(v));else selSet.clear();
+  const selectAll=forceState!==undefined?forceState:(allEl?.checked??true);
+  if(selectAll)vals.forEach(v=>selSet.add(v));else selSet.clear();
   buildStmtCheckPicker(elId,vals,selSet,type==='cat'?'Categories':'Brands');
   renderStatement();
 }
@@ -1950,6 +2026,98 @@ function printPage(title,body){
 }
 
 // ══════════════════════════════════════════════════════
+// RECYCLE BIN — restore soft-deleted movement log entries
+// ══════════════════════════════════════════════════════
+let _recycleData=[];
+
+async function loadRecycleData(){
+  try{
+    const{data,error}=await sb.from('movement_log')
+      .select('*').eq('is_deleted',true)
+      .order('deleted_at',{ascending:false}).limit(500);
+    if(!error&&data)_recycleData=data;
+  }catch(e){console.warn('recycle load:',e.message);}
+}
+
+function renderRecycle(){
+  loadRecycleData().then(()=>{
+    const s=(gv('recycleSrch')||'').toLowerCase();
+    let rows=_recycleData;
+    if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.customer_name+r.done_by+r.delete_reason||'').toLowerCase().includes(s));
+    const fmtD=d=>d?new Date(d).toLocaleDateString('en-IN'):'—';
+    const fmtDT=d=>d?new Date(d).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'}):'—';
+    const typeLabels={stock_in:'📥 Stock In',sale:'💰 Sale',test_return:'🔄 Test/Return',other:'📋 Other',correction_up:'✏️ Correction↑',correction_down:'✏️ Correction↓'};
+    const qColor=q=>q>0?'var(--green)':'var(--red)';
+    if(!rows.length){
+      g('recycleTbl').innerHTML=`<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text3)">Recycle bin is empty</td></tr>`;
+      return;
+    }
+    g('recycleTbl').innerHTML=rows.map(r=>`<tr>
+      <td><input type="checkbox" class="recycle-chk" data-id="${r.id}"/></td>
+      <td style="font-size:11px;color:var(--red);white-space:nowrap">${fmtDT(r.deleted_at)}</td>
+      <td><span class="badge bb" style="font-size:10px">${typeLabels[r.movement_type]||r.movement_type}</span></td>
+      <td style="font-size:12px"><strong>${r.product_code||''}</strong><br><span style="color:var(--text2);font-size:11px">${r.product_desc||''}</span></td>
+      <td style="font-weight:700;color:${qColor(r.qty_change)}">${r.qty_change>0?'+':''}${r.qty_change}</td>
+      <td style="font-size:11px">${fmtD(r.movement_date)}</td>
+      <td style="font-size:12px">${r.customer_name||'—'}</td>
+      <td style="font-size:11px">${r.invoice_no||r.dc_no||r.rdc_no||'—'}</td>
+      <td style="font-size:11px;color:var(--text2)">${r.deleted_by||'—'}</td>
+      <td style="font-size:11px;color:var(--amber)">${r.delete_reason||'—'}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-success btn-xs" onclick="restoreMvRow('${r.id}')">↩ Restore</button>
+          <button class="btn btn-danger btn-xs" onclick="permDeleteMvRow('${r.id}')">✕ Delete</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  });
+}
+
+async function restoreMvRow(id){
+  const r=_recycleData.find(x=>x.id===id);
+  if(!r)return;
+  if(!confirm(`Restore this entry?
+
+${r.product_code} — ${r.movement_type}
+Qty change: ${r.qty_change>0?'+':''}${r.qty_change}
+
+This will update the product stock qty accordingly.`))return;
+  try{
+    // Un-delete the entry
+    const{error}=await sb.from('movement_log').update({
+      is_deleted:false,deleted_at:null,deleted_by:null,delete_reason:null
+    }).eq('id',id);
+    if(error)throw error;
+    // Reverse the stock reversal — re-apply the original qty change
+    if(r.product_id){
+      const prod=products.find(x=>x.id===r.product_id);
+      if(prod){
+        const newQty=Math.max(0,prod.qty+r.qty_change);
+        await sb.from('products').update({qty:newQty,updated_at:new Date().toISOString()}).eq('id',r.product_id);
+        prod.qty=newQty;
+      }
+    }
+    await addLog('Movement Restored',r.product_desc,`Restored ${r.movement_type} entry. Qty ${r.qty_change>0?'+':''}${r.qty_change} re-applied`,'','');
+    const{data:pd}=await sb.from('products').select('*').order('created_at',{ascending:false});
+    if(pd)products=pd;
+    await loadMovementLog();
+    await loadRecycleData();
+    renderAll();
+    renderRecycle();
+    notif(`Entry restored! Product qty updated.`,'s');
+  }catch(e){notif('Restore failed: '+e.message,'e');}
+}
+
+async function permDeleteMvRow(id){
+  if(!confirm('Permanently delete this entry? This cannot be undone.'))return;
+  const{error}=await sb.from('movement_log').delete().eq('id',id);
+  if(error){notif('Delete failed: '+error.message,'e');return;}
+  await loadRecycleData();
+  renderRecycle();
+  notif('Permanently deleted','i');
+}
+
+// ══════════════════════════════════════════════════════
 // SORTABLE + DRAGGABLE COLUMN HEADERS
 // ══════════════════════════════════════════════════════
 function thSort(tab,col,skip){
@@ -2051,9 +2219,12 @@ const MV_SEC_CFG=[
 
 async function loadMovementLog(){
   try{
-    const{data,error}=await sb.from('movement_log').select('*').order('movement_date',{ascending:false}).limit(1000);
-    if(error)throw error;
-    if(data){_mvData=data;_mvDataFiltered=[...data];}
+    const{data,error}=await sb.from('movement_log').select('*').eq('is_deleted',false).order('movement_date',{ascending:false}).limit(1000);
+    if(error){
+      // Fallback if column doesn't exist yet
+      const{data:d2}=await sb.from('movement_log').select('*').order('movement_date',{ascending:false}).limit(1000);
+      if(d2){_mvData=d2.filter(r=>!r.is_deleted);_mvDataFiltered=[..._mvData];}
+    } else if(data){_mvData=data;_mvDataFiltered=[...data];}
   }catch(e){console.warn('movement_log load:',e.message);}
 }
 
@@ -2229,8 +2400,16 @@ async function deleteMvRows(ids){
         qtyMap[r.product_id]=(qtyMap[r.product_id]||0)-r.qty_change; // reverse: subtract the change
       }
     });
-    // Delete from movement_log
-    const{error}=await sb.from('movement_log').delete().in('id',ids);
+    // Soft delete — mark as deleted (restorable by admin)
+    const deleteReason=ids.length===1?
+      (prompt('Reason for deletion (required):','')||'No reason given'):
+      `Bulk delete of ${ids.length} entries`;
+    const{error}=await sb.from('movement_log').update({
+      is_deleted:true,
+      deleted_at:new Date().toISOString(),
+      deleted_by:cu.name,
+      delete_reason:deleteReason
+    }).in('id',ids);
     if(error)throw error;
     // Update each affected product qty
     for(const [pid,delta] of Object.entries(qtyMap)){
@@ -2936,12 +3115,55 @@ function ageSort(col){
   renderAgeing();
 }
 
+// Ageing filter state
+let _ageSelCats=new Set();
+let _ageSelBrands=new Set();
+
+function toggleDpicker(id){
+  // Close all others first
+  document.querySelectorAll('.dpicker-menu.open').forEach(m=>{if(m.id!==id+'Menu')m.classList.remove('open');});
+  const menu=g(id+'Menu');if(menu)menu.classList.toggle('open');
+}
+// Close dropdowns when clicking outside
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.dpicker'))document.querySelectorAll('.dpicker-menu.open').forEach(m=>m.classList.remove('open'));
+});
+
+function buildAgePicker(type){
+  const isCat=type==='cat';
+  const vals=isCat?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
+  const selSet=isCat?_ageSelCats:_ageSelBrands;
+  if(selSet.size===0)vals.forEach(v=>selSet.add(v));
+  const itemsEl=g(isCat?'ageCatItems':'ageBrandItems');
+  const labelEl=g(isCat?'ageCatLabel':'ageBrandLabel');
+  if(itemsEl){
+    itemsEl.innerHTML=vals.map(v=>`<label><input type="checkbox" value="${v}" ${selSet.has(v)?'checked':''} onchange="agePickerChange('${type}','${v}',this)"/>${v}</label>`).join('');
+  }
+  if(labelEl){
+    if(selSet.size===vals.length)labelEl.textContent=isCat?'All Categories':'All Brands';
+    else if(selSet.size===0)labelEl.textContent=isCat?'No Categories':'No Brands';
+    else labelEl.textContent=`${selSet.size} ${isCat?'categor':'brand'}${selSet.size>1?(isCat?'ies':'s'):(isCat?'y':'')} selected`;
+  }
+}
+
+function agePickerChange(type,val,el){
+  const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
+  el.checked?selSet.add(val):selSet.delete(val);
+  buildAgePicker(type);
+  renderAgeing();
+}
+
+function agePickerAll(type,selectAll){
+  const vals=type==='cat'?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
+  const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
+  if(selectAll)vals.forEach(v=>selSet.add(v));else selSet.clear();
+  buildAgePicker(type);
+  renderAgeing();
+}
+
 function popAgeFilters(){
-  const cats=[...new Set(products.map(p=>p.category))].sort();
-  const brands=[...new Set(products.map(p=>p.brand))].sort();
-  const ac=g('ageCatF'),ab=g('ageBrandF');
-  if(ac){const v=ac.value;ac.innerHTML='<option value="">All Categories</option>'+cats.map(c=>`<option>${c}</option>`).join('');ac.value=v;}
-  if(ab){const v=ab.value;ab.innerHTML='<option value="">All Brands</option>'+brands.map(b=>`<option>${b}</option>`).join('');ab.value=v;}
+  buildAgePicker('cat');
+  buildAgePicker('brand');
 }
 
 // Build grouped product structure for display
@@ -2976,13 +3198,13 @@ function buildGroupedAgeRows(filteredBatches){
 function renderAgeing(){
   popAgeFilters();
   buildAgeingRows();
-  const cat=gv('ageCatF'),brand=gv('ageBrandF'),grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
+  const grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
   const sortKey=gv('ageSort')||'age_desc';
 
   // Filter at batch level first
   let batches=_ageRows.filter(r=>r.remaining_qty>0);
-  if(cat)batches=batches.filter(r=>r.category===cat);
-  if(brand)batches=batches.filter(r=>r.brand===brand);
+  if(_ageSelCats.size>0)batches=batches.filter(r=>_ageSelCats.has(r.category));
+  if(_ageSelBrands.size>0)batches=batches.filter(r=>_ageSelBrands.has(r.brand));
   if(grp){
     const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);
     batches=batches.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));
@@ -3121,10 +3343,10 @@ function renderAgeing(){
 
 // ── EXPORTS ──────────────────────────────────────────
 function getAgeExportRows(){
-  const cat=gv('ageCatF'),brand=gv('ageBrandF'),grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
+  const grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
   let rows=_ageRows.filter(r=>r.remaining_qty>0);
-  if(cat)rows=rows.filter(r=>r.category===cat);
-  if(brand)rows=rows.filter(r=>r.brand===brand);
+  if(_ageSelCats.size>0)rows=rows.filter(r=>_ageSelCats.has(r.category));
+  if(_ageSelBrands.size>0)rows=rows.filter(r=>_ageSelBrands.has(r.brand));
   if(grp){const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);rows=rows.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));}
   if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.category+r.brand+r.invoice_no+r.waybill_no).toLowerCase().includes(s));
   return rows;
