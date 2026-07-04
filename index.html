@@ -631,26 +631,26 @@ th.col-drop-right{border-right:2px solid var(--accent)}
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <!-- Compact Category picker -->
           <div class="dpicker" id="ageCatDp">
-            <div class="dpicker-btn" onclick="toggleDpicker('ageCatDp')">
+            <div class="dpicker-btn" onclick="toggleDpicker('ageCatDp',event)">
               <span id="ageCatLabel">All Categories</span><span>▾</span>
             </div>
             <div class="dpicker-menu" id="ageCatMenu">
               <div class="dpicker-actions">
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',true)">All</button>
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',false)">None</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',true,event)">All</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',false,event)">None</button>
               </div>
               <div id="ageCatItems"></div>
             </div>
           </div>
           <!-- Compact Brand picker -->
           <div class="dpicker" id="ageBrandDp">
-            <div class="dpicker-btn" onclick="toggleDpicker('ageBrandDp')">
+            <div class="dpicker-btn" onclick="toggleDpicker('ageBrandDp',event)">
               <span id="ageBrandLabel">All Brands</span><span>▾</span>
             </div>
             <div class="dpicker-menu" id="ageBrandMenu">
               <div class="dpicker-actions">
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',true)">All</button>
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',false)">None</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',true,event)">All</button>
+                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',false,event)">None</button>
               </div>
               <div id="ageBrandItems"></div>
             </div>
@@ -1647,13 +1647,13 @@ async function savePricing(){
 let _stmtSelCats=new Set();
 let _stmtSelBrands=new Set();
 
-function buildStmtCheckPicker(elId, vals, selSet, label){
+function buildStmtCheckPicker(elId, vals, selSet, label, skipAutoAll=false){
   const el=g(elId);if(!el)return;
   // Keep existing selections that are still valid
   const validVals=new Set(vals);
   [...selSet].forEach(v=>{if(!validVals.has(v))selSet.delete(v);});
-  // If nothing selected, select all
-  if(selSet.size===0)vals.forEach(v=>selSet.add(v));
+  // If nothing selected AND not explicitly cleared, select all
+  if(selSet.size===0&&!skipAutoAll)vals.forEach(v=>selSet.add(v));
   el.innerHTML=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:1px 0;color:var(--text2);border-bottom:1px solid var(--border);margin-bottom:3px;padding-bottom:3px">
       <input type="checkbox" id="${elId}_all" onchange="stmtPickerToggleAll('${elId}','${elId==='stmtCatPicker'?'cat':'brand'}')" ${selSet.size===vals.length?'checked':''}/>
       <em>All ${label}</em></label>`+
@@ -1677,7 +1677,8 @@ function stmtPickerToggleAll(elId,type,forceState){
   const vals=type==='cat'?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
   const selectAll=forceState!==undefined?forceState:(allEl?.checked??true);
   if(selectAll)vals.forEach(v=>selSet.add(v));else selSet.clear();
-  buildStmtCheckPicker(elId,vals,selSet,type==='cat'?'Categories':'Brands');
+  // pass skipAutoAll=true so clearing stays cleared
+  buildStmtCheckPicker(elId,vals,selSet,type==='cat'?'Categories':'Brands',!selectAll);
   renderStatement();
 }
 
@@ -3119,45 +3120,55 @@ function ageSort(col){
 let _ageSelCats=new Set();
 let _ageSelBrands=new Set();
 
-function toggleDpicker(id){
+function toggleDpicker(id,event){
+  if(event){event.stopPropagation();}
   // Close all others first
-  document.querySelectorAll('.dpicker-menu.open').forEach(m=>{if(m.id!==id+'Menu')m.classList.remove('open');});
+  document.querySelectorAll('.dpicker-menu.open').forEach(m=>{
+    if(m.id!==id+'Menu')m.classList.remove('open');
+  });
   const menu=g(id+'Menu');if(menu)menu.classList.toggle('open');
 }
-// Close dropdowns when clicking outside
+// Close dropdowns when clicking outside — use capture to not conflict with button
 document.addEventListener('click',e=>{
-  if(!e.target.closest('.dpicker'))document.querySelectorAll('.dpicker-menu.open').forEach(m=>m.classList.remove('open'));
-});
+  if(!e.target.closest('.dpicker')){
+    document.querySelectorAll('.dpicker-menu.open').forEach(m=>m.classList.remove('open'));
+  }
+},true);
 
-function buildAgePicker(type){
+function buildAgePicker(type,skipAutoAll=false){
   const isCat=type==='cat';
   const vals=isCat?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
   const selSet=isCat?_ageSelCats:_ageSelBrands;
-  if(selSet.size===0)vals.forEach(v=>selSet.add(v));
+  // Only auto-select-all on first load, not when user explicitly clicked None
+  if(selSet.size===0&&!skipAutoAll)vals.forEach(v=>selSet.add(v));
   const itemsEl=g(isCat?'ageCatItems':'ageBrandItems');
   const labelEl=g(isCat?'ageCatLabel':'ageBrandLabel');
   if(itemsEl){
-    itemsEl.innerHTML=vals.map(v=>`<label><input type="checkbox" value="${v}" ${selSet.has(v)?'checked':''} onchange="agePickerChange('${type}','${v}',this)"/>${v}</label>`).join('');
+    itemsEl.innerHTML=vals.map(v=>`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:2px 0"><input type="checkbox" value="${v}" ${selSet.has(v)?'checked':''} onchange="agePickerChange('${type}','${v}',this)"/><span>${v}</span></label>`).join('');
   }
   if(labelEl){
     if(selSet.size===vals.length)labelEl.textContent=isCat?'All Categories':'All Brands';
     else if(selSet.size===0)labelEl.textContent=isCat?'No Categories':'No Brands';
-    else labelEl.textContent=`${selSet.size} ${isCat?'categor':'brand'}${selSet.size>1?(isCat?'ies':'s'):(isCat?'y':'')} selected`;
+    else{
+      const n=selSet.size;
+      labelEl.textContent=`${n} ${isCat?'Categor':'Brand'}${n>1?(isCat?'ies':'s'):(isCat?'y':'')}`;
+    }
   }
 }
 
 function agePickerChange(type,val,el){
   const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
   el.checked?selSet.add(val):selSet.delete(val);
-  buildAgePicker(type);
+  buildAgePicker(type,selSet.size===0); // skipAutoAll if all unchecked
   renderAgeing();
 }
 
-function agePickerAll(type,selectAll){
+function agePickerAll(type,selectAll,event){
+  if(event)event.stopPropagation(); // prevent dropdown from closing
   const vals=type==='cat'?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
   const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
   if(selectAll)vals.forEach(v=>selSet.add(v));else selSet.clear();
-  buildAgePicker(type);
+  buildAgePicker(type,!selectAll); // skipAutoAll=true when clearing
   renderAgeing();
 }
 
