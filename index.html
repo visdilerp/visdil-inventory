@@ -1,5 +1,6 @@
+
 <!DOCTYPE html>
-<html lang="en"> 
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3122,18 +3123,21 @@ let _ageSelBrands=new Set();
 
 function toggleDpicker(id,event){
   if(event){event.stopPropagation();}
+  // menu id = id with 'Dp' replaced by 'Menu', e.g. ageCatDp -> ageCatMenu
+  const menuId=id.replace('Dp','Menu');
   // Close all others first
   document.querySelectorAll('.dpicker-menu.open').forEach(m=>{
-    if(m.id!==id+'Menu')m.classList.remove('open');
+    if(m.id!==menuId)m.classList.remove('open');
   });
-  const menu=g(id+'Menu');if(menu)menu.classList.toggle('open');
+  const menu=g(menuId);
+  if(menu)menu.classList.toggle('open');
 }
-// Close dropdowns when clicking outside — use capture to not conflict with button
+// Close dropdowns when clicking outside
 document.addEventListener('click',e=>{
   if(!e.target.closest('.dpicker')){
     document.querySelectorAll('.dpicker-menu.open').forEach(m=>m.classList.remove('open'));
   }
-},true);
+});
 
 function buildAgePicker(type,skipAutoAll=false){
   const isCat=type==='cat';
