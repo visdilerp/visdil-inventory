@@ -628,50 +628,40 @@ th.col-drop-right{border-right:2px solid var(--accent)}
       </div>
       <!-- Filters -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:13px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <!-- Compact Category picker -->
-          <div class="dpicker" id="ageCatDp">
-            <div class="dpicker-btn" onclick="toggleDpicker('ageCatDp',event)">
-              <span id="ageCatLabel">All Categories</span><span>▾</span>
-            </div>
-            <div class="dpicker-menu" id="ageCatMenu">
-              <div class="dpicker-actions">
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',true,event)">All</button>
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('cat',false,event)">None</button>
-              </div>
-              <div id="ageCatItems"></div>
-            </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select class="flt" id="ageGroupF" onchange="renderAgeing()">
+              <option value="">All Age Groups</option>
+              <option value="0-30">0–30 days (Fresh)</option>
+              <option value="31-90">31–90 days</option>
+              <option value="91-180">91–180 days</option>
+              <option value="181-365">181 days–1 year</option>
+              <option value="365+">Over 1 year</option>
+            </select>
+            <select class="flt" id="ageSort" onchange="renderAgeing()">
+              <option value="age_desc">Oldest First</option>
+              <option value="age_asc">Newest First</option>
+              <option value="code">Code A-Z</option>
+              <option value="category">Category</option>
+              <option value="qty_desc">Qty ↓</option>
+            </select>
+            <input class="srch" id="ageSrch" placeholder="Search..." oninput="renderAgeing()"/>
+            <button class="btn btn-ghost btn-xs" onclick="resetAgeFilters()">↺ Reset All</button>
           </div>
-          <!-- Compact Brand picker -->
-          <div class="dpicker" id="ageBrandDp">
-            <div class="dpicker-btn" onclick="toggleDpicker('ageBrandDp',event)">
-              <span id="ageBrandLabel">All Brands</span><span>▾</span>
-            </div>
-            <div class="dpicker-menu" id="ageBrandMenu">
-              <div class="dpicker-actions">
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',true,event)">All</button>
-                <button class="btn btn-ghost btn-xs" style="padding:1px 7px;font-size:11px" onclick="agePickerAll('brand',false,event)">None</button>
-              </div>
-              <div id="ageBrandItems"></div>
-            </div>
+          <!-- Category filter row -->
+          <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;padding-top:4px;white-space:nowrap;min-width:64px">Category:</div>
+            <button class="btn btn-ghost btn-xs" id="ageCatAll" onclick="ageSelectAll('cat',true)" style="font-size:11px;padding:2px 8px">All</button>
+            <button class="btn btn-ghost btn-xs" id="ageCatNone" onclick="ageSelectAll('cat',false)" style="font-size:11px;padding:2px 8px">None</button>
+            <div id="ageCatChips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
           </div>
-          <!-- Age group filter -->
-          <select class="flt" id="ageGroupF" onchange="renderAgeing()">
-            <option value="">All Age Groups</option>
-            <option value="0-30">0–30 days (Fresh)</option>
-            <option value="31-90">31–90 days</option>
-            <option value="91-180">91–180 days</option>
-            <option value="181-365">181 days–1 year</option>
-            <option value="365+">Over 1 year</option>
-          </select>
-          <select class="flt" id="ageSort" onchange="renderAgeing()">
-            <option value="age_desc">Oldest First</option>
-            <option value="age_asc">Newest First</option>
-            <option value="code">Code A-Z</option>
-            <option value="category">Category</option>
-            <option value="qty_desc">Qty ↓</option>
-          </select>
-          <input class="srch" id="ageSrch" placeholder="Search..." oninput="renderAgeing()"/>
+          <!-- Brand filter row -->
+          <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;padding-top:4px;white-space:nowrap;min-width:64px">Brand:</div>
+            <button class="btn btn-ghost btn-xs" id="ageBrandAll" onclick="ageSelectAll('brand',true)" style="font-size:11px;padding:2px 8px">All</button>
+            <button class="btn btn-ghost btn-xs" id="ageBrandNone" onclick="ageSelectAll('brand',false)" style="font-size:11px;padding:2px 8px">None</button>
+            <div id="ageBrandChips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+          </div>
         </div>
       </div>
       <!-- Summary cards -->
@@ -3116,86 +3106,63 @@ function ageSort(col){
   renderAgeing();
 }
 
-// Ageing filter state
-let _ageSelCats=new Set();
-let _ageSelBrands=new Set();
+// ── AGEING FILTER STATE (simple sets) ──────────────────
+let _ageSelCats=new Set();   // empty = all selected
+let _ageSelBrands=new Set(); // empty = all selected
+let _ageCatInitDone=false;
+let _ageBrandInitDone=false;
 
-function toggleDpicker(id,event){
-  if(event){event.stopPropagation();}
-  const menuId=id.replace('Dp','Menu');
-  const menu=g(menuId);
-  if(!menu)return;
-  const isOpen=menu.classList.contains('open');
-  // Close all open menus
-  document.querySelectorAll('.dpicker-menu.open').forEach(m=>m.classList.remove('open'));
-  // Toggle this one
-  if(!isOpen)menu.classList.add('open');
-}
-// Close on mousedown outside (fires before click, doesn't interfere with button handlers)
-document.addEventListener('mousedown',e=>{
-  if(!e.target.closest('.dpicker')){
-    document.querySelectorAll('.dpicker-menu.open').forEach(m=>m.classList.remove('open'));
-  }
-});
-
-function buildAgePicker(type,skipAutoAll=false){
-  const isCat=type==='cat';
-  const vals=isCat?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
-  const selSet=isCat?_ageSelCats:_ageSelBrands;
-  // Only auto-select-all on first load, not when user explicitly clicked None
-  if(selSet.size===0&&!skipAutoAll)vals.forEach(v=>selSet.add(v));
-  const itemsEl=g(isCat?'ageCatItems':'ageBrandItems');
-  const labelEl=g(isCat?'ageCatLabel':'ageBrandLabel');
-  if(itemsEl){
-    itemsEl.innerHTML=vals.map(v=>`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:2px 0"><input type="checkbox" value="${v}" ${selSet.has(v)?'checked':''} onchange="agePickerChange('${type}','${v}',this)"/><span>${v}</span></label>`).join('');
-  }
-  if(labelEl){
-    if(selSet.size===vals.length)labelEl.textContent=isCat?'All Categories':'All Brands';
-    else if(selSet.size===0)labelEl.textContent=isCat?'No Categories':'No Brands';
-    else{
-      const n=selSet.size;
-      labelEl.textContent=`${n} ${isCat?'Categor':'Brand'}${n>1?(isCat?'ies':'s'):(isCat?'y':'')}`;
-    }
-  }
-}
-
-function agePickerChange(type,val,el){
-  if(el.event)el.event.stopPropagation();
+function ageSelectAll(type,selectAll){
+  const vals=type==='cat'
+    ?[...new Set(products.map(p=>p.category))].sort()
+    :[...new Set(products.map(p=>p.brand))].sort();
   const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
-  el.checked?selSet.add(val):selSet.delete(val);
-  // Update label only — don't rebuild checkboxes (would close menu)
-  const labelEl=g(type==='cat'?'ageCatLabel':'ageBrandLabel');
-  const total=type==='cat'?[...new Set(products.map(p=>p.category))].length:[...new Set(products.map(p=>p.brand))].length;
-  if(labelEl){
-    if(selSet.size===total)labelEl.textContent=type==='cat'?'All Categories':'All Brands';
-    else if(selSet.size===0)labelEl.textContent=type==='cat'?'No Categories':'No Brands';
-    else labelEl.textContent=`${selSet.size} ${type==='cat'?'Categories':'Brands'} selected`;
-  }
+  if(selectAll){vals.forEach(v=>selSet.add(v));}
+  else{selSet.clear();}
+  buildAgeChips(type);
   renderAgeing();
 }
 
-function agePickerAll(type,selectAll,event){
-  if(event){event.stopPropagation();event.preventDefault();}
-  const vals=type==='cat'?[...new Set(products.map(p=>p.category))].sort():[...new Set(products.map(p=>p.brand))].sort();
+function ageChipToggle(type,val){
   const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
-  if(selectAll)vals.forEach(v=>selSet.add(v));else selSet.clear();
-  // Rebuild checkboxes in place without closing menu
-  const itemsEl=g(type==='cat'?'ageCatItems':'ageBrandItems');
-  const labelEl=g(type==='cat'?'ageCatLabel':'ageBrandLabel');
-  if(itemsEl){
-    itemsEl.innerHTML=vals.map(v=>`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:2px 0"><input type="checkbox" value="${v}" ${selSet.has(v)?'checked':''} onchange="agePickerChange('${type}','${v}',this)"/><span>${v}</span></label>`).join('');
-  }
-  if(labelEl){
-    if(selSet.size===vals.length)labelEl.textContent=type==='cat'?'All Categories':'All Brands';
-    else if(selSet.size===0)labelEl.textContent=type==='cat'?'No Categories':'No Brands';
-    else labelEl.textContent=`${selSet.size} ${type==='cat'?'Categories':'Brands'} selected`;
-  }
+  if(selSet.has(val))selSet.delete(val);
+  else selSet.add(val);
+  buildAgeChips(type);
+  renderAgeing();
+}
+
+function buildAgeChips(type){
+  const isCat=type==='cat';
+  const vals=isCat
+    ?[...new Set(products.map(p=>p.category))].sort()
+    :[...new Set(products.map(p=>p.brand))].sort();
+  const selSet=isCat?_ageSelCats:_ageSelBrands;
+  // Init: if empty, select all
+  if(selSet.size===0)vals.forEach(v=>selSet.add(v));
+  const chipsEl=g(isCat?'ageCatChips':'ageBrandChips');
+  if(!chipsEl)return;
+  chipsEl.innerHTML=vals.map(v=>{
+    const on=selSet.has(v);
+    return `<button onclick="ageChipToggle('${type}','${v}')" style="
+      padding:2px 9px;border-radius:12px;font-size:11px;cursor:pointer;border:1px solid;
+      font-weight:${on?'600':'400'};
+      background:${on?'var(--accent)':'transparent'};
+      color:${on?'#fff':'var(--text2)'};
+      border-color:${on?'var(--accent)':'var(--border2)'};
+      transition:all .15s">${v}</button>`;
+  }).join('');
+}
+
+function resetAgeFilters(){
+  _ageSelCats=new Set();_ageSelBrands=new Set();
+  buildAgeChips('cat');buildAgeChips('brand');
+  sv('ageGroupF','');sv('ageSort','age_desc');sv('ageSrch','');
   renderAgeing();
 }
 
 function popAgeFilters(){
-  buildAgePicker('cat');
-  buildAgePicker('brand');
+  buildAgeChips('cat');
+  buildAgeChips('brand');
 }
 
 // Build grouped product structure for display
@@ -3233,10 +3200,13 @@ function renderAgeing(){
   const grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
   const sortKey=gv('ageSort')||'age_desc';
 
-  // Filter at batch level first
+  // Filter at batch level
+  // _ageSelCats empty means None selected (chips show none active)
   let batches=_ageRows.filter(r=>r.remaining_qty>0);
   if(_ageSelCats.size>0)batches=batches.filter(r=>_ageSelCats.has(r.category));
+  else batches=[]; // None selected = show nothing
   if(_ageSelBrands.size>0)batches=batches.filter(r=>_ageSelBrands.has(r.brand));
+  else batches=[]; // None selected = show nothing
   if(grp){
     const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);
     batches=batches.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));
@@ -3377,8 +3347,8 @@ function renderAgeing(){
 function getAgeExportRows(){
   const grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
   let rows=_ageRows.filter(r=>r.remaining_qty>0);
-  if(_ageSelCats.size>0)rows=rows.filter(r=>_ageSelCats.has(r.category));
-  if(_ageSelBrands.size>0)rows=rows.filter(r=>_ageSelBrands.has(r.brand));
+  if(_ageSelCats.size>0)rows=rows.filter(r=>_ageSelCats.has(r.category));else rows=[];
+  if(_ageSelBrands.size>0)rows=rows.filter(r=>_ageSelBrands.has(r.brand));else rows=[];
   if(grp){const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);rows=rows.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));}
   if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.category+r.brand+r.invoice_no+r.waybill_no).toLowerCase().includes(s));
   return rows;
