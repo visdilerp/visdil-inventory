@@ -3107,54 +3107,62 @@ function ageSort(col){
 }
 
 // ── AGEING FILTER STATE (simple sets) ──────────────────
-let _ageSelCats=new Set();   // empty = all selected
-let _ageSelBrands=new Set(); // empty = all selected
-let _ageCatInitDone=false;
-let _ageBrandInitDone=false;
+// null = all, Set = specific selection
+let _ageSelCats=null;
+let _ageSelBrands=null;
 
-function ageSelectAll(type,selectAll){
-  const vals=type==='cat'
+function ageGetVals(type){
+  return type==='cat'
     ?[...new Set(products.map(p=>p.category))].sort()
     :[...new Set(products.map(p=>p.brand))].sort();
-  const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
-  if(selectAll){vals.forEach(v=>selSet.add(v));}
-  else{selSet.clear();}
+}
+
+function ageSelectAll(type,selectAll){
+  if(type==='cat') _ageSelCats=selectAll?null:new Set();
+  else             _ageSelBrands=selectAll?null:new Set();
   buildAgeChips(type);
   renderAgeing();
 }
 
 function ageChipToggle(type,val){
-  const selSet=type==='cat'?_ageSelCats:_ageSelBrands;
-  if(selSet.has(val))selSet.delete(val);
-  else selSet.add(val);
+  const vals=ageGetVals(type);
+  // If currently "all", clicking one = select only that one
+  if(type==='cat'){
+    if(_ageSelCats===null){
+      _ageSelCats=new Set(vals); // start with all
+      _ageSelCats.delete(val);   // remove the clicked one
+    } else {
+      _ageSelCats.has(val)?_ageSelCats.delete(val):_ageSelCats.add(val);
+      if(_ageSelCats.size===vals.length)_ageSelCats=null; // back to "all"
+    }
+  } else {
+    if(_ageSelBrands===null){
+      _ageSelBrands=new Set(vals);
+      _ageSelBrands.delete(val);
+    } else {
+      _ageSelBrands.has(val)?_ageSelBrands.delete(val):_ageSelBrands.add(val);
+      if(_ageSelBrands.size===vals.length)_ageSelBrands=null;
+    }
+  }
   buildAgeChips(type);
   renderAgeing();
 }
 
 function buildAgeChips(type){
   const isCat=type==='cat';
-  const vals=isCat
-    ?[...new Set(products.map(p=>p.category))].sort()
-    :[...new Set(products.map(p=>p.brand))].sort();
-  const selSet=isCat?_ageSelCats:_ageSelBrands;
-  // Init: if empty, select all
-  if(selSet.size===0)vals.forEach(v=>selSet.add(v));
+  const vals=ageGetVals(type);
+  const sel=isCat?_ageSelCats:_ageSelBrands;
   const chipsEl=g(isCat?'ageCatChips':'ageBrandChips');
   if(!chipsEl)return;
+  // sel===null means all selected
   chipsEl.innerHTML=vals.map(v=>{
-    const on=selSet.has(v);
-    return `<button onclick="ageChipToggle('${type}','${v}')" style="
-      padding:2px 9px;border-radius:12px;font-size:11px;cursor:pointer;border:1px solid;
-      font-weight:${on?'600':'400'};
-      background:${on?'var(--accent)':'transparent'};
-      color:${on?'#fff':'var(--text2)'};
-      border-color:${on?'var(--accent)':'var(--border2)'};
-      transition:all .15s">${v}</button>`;
+    const on=sel===null||sel.has(v);
+    return `<button onclick="ageChipToggle('${type}','${v}')" style="padding:2px 9px;border-radius:12px;font-size:11px;cursor:pointer;border:1px solid;font-weight:${on?'600':'400'};background:${on?'var(--accent)':'transparent'};color:${on?'#fff':'var(--text2)'};border-color:${on?'var(--accent)':'var(--border2)'};transition:all .15s">${v}</button>`;
   }).join('');
 }
 
 function resetAgeFilters(){
-  _ageSelCats=new Set();_ageSelBrands=new Set();
+  _ageSelCats=null;_ageSelBrands=null;
   buildAgeChips('cat');buildAgeChips('brand');
   sv('ageGroupF','');sv('ageSort','age_desc');sv('ageSrch','');
   renderAgeing();
@@ -3200,13 +3208,10 @@ function renderAgeing(){
   const grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
   const sortKey=gv('ageSort')||'age_desc';
 
-  // Filter at batch level
-  // _ageSelCats empty means None selected (chips show none active)
+  // Filter: null=all, Set=specific, empty Set=none
   let batches=_ageRows.filter(r=>r.remaining_qty>0);
-  if(_ageSelCats.size>0)batches=batches.filter(r=>_ageSelCats.has(r.category));
-  else batches=[]; // None selected = show nothing
-  if(_ageSelBrands.size>0)batches=batches.filter(r=>_ageSelBrands.has(r.brand));
-  else batches=[]; // None selected = show nothing
+  if(_ageSelCats!==null) batches=batches.filter(r=>_ageSelCats.has(r.category));
+  if(_ageSelBrands!==null) batches=batches.filter(r=>_ageSelBrands.has(r.brand));
   if(grp){
     const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);
     batches=batches.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));
@@ -3347,8 +3352,8 @@ function renderAgeing(){
 function getAgeExportRows(){
   const grp=gv('ageGroupF'),s=(gv('ageSrch')||'').toLowerCase();
   let rows=_ageRows.filter(r=>r.remaining_qty>0);
-  if(_ageSelCats.size>0)rows=rows.filter(r=>_ageSelCats.has(r.category));else rows=[];
-  if(_ageSelBrands.size>0)rows=rows.filter(r=>_ageSelBrands.has(r.brand));else rows=[];
+  if(_ageSelCats!==null)rows=rows.filter(r=>_ageSelCats.has(r.category));
+  if(_ageSelBrands!==null)rows=rows.filter(r=>_ageSelBrands.has(r.brand));
   if(grp){const[lo,hi]=grp==='365+'?[366,999999]:grp.split('-').map(Number);rows=rows.filter(r=>r.age_days>=lo&&(hi?r.age_days<=hi:true));}
   if(s)rows=rows.filter(r=>(r.product_code+r.product_desc+r.category+r.brand+r.invoice_no+r.waybill_no).toLowerCase().includes(s));
   return rows;
