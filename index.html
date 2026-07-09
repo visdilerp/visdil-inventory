@@ -305,12 +305,37 @@ th.col-drop-right{border-right:2px solid var(--accent)}
 
     <!-- PRICING -->
     <div class="tab" id="t-pricing">
-      <div class="sh"><div class="stt">Pricing Management</div><div style="display:flex;gap:6px"><span class="badge bb" style="align-self:center">Admin Only</span><button class="btn btn-ghost btn-sm" onclick="openColModal('pricing')">⚙ Columns</button><button class="btn btn-ghost btn-sm" onclick="tabExport('pricing')">⬇ Export</button></div></div>
-      <div class="tw">
-        <div class="tb">
-          <input class="srch" id="prsrch" placeholder="Search..." oninput="renderPricing()" />
-          <select class="flt" id="pricingSort" onchange="renderPricing()"><option value="">Default</option><option value="code">Code A-Z</option><option value="eu_asc">End User ↑</option><option value="eu_desc">End User ↓</option><option value="l_asc">Landed ↑</option><option value="l_desc">Landed ↓</option></select>
+      <div class="sh">
+        <div class="stt">Pricing Management</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span class="badge bb" style="align-self:center">Admin / Pricing</span>
+          <button class="btn btn-ghost btn-sm" onclick="openColModal('pricing')">⚙ Columns</button>
+          <button class="btn btn-ghost btn-sm" onclick="openPriceExportModal()">⬇ Export</button>
         </div>
+      </div>
+      <!-- Filters row -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 13px;margin-bottom:10px">
+        <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+          <input class="srch" id="prsrch" placeholder="Search code / product..." oninput="renderPricing()" style="width:180px"/>
+          <select class="flt" id="prCatF" onchange="renderPricing()"><option value="">All Categories</option></select>
+          <select class="flt" id="prBrandF" onchange="renderPricing()"><option value="">All Brands</option></select>
+          <select class="flt" id="prPricedF" onchange="renderPricing()">
+            <option value="">All Products</option>
+            <option value="priced">Priced Only</option>
+            <option value="unpriced">Unpriced Only</option>
+          </select>
+          <select class="flt" id="pricingSort" onchange="renderPricing()">
+            <option value="">Default</option>
+            <option value="code">Code A-Z</option>
+            <option value="eu_asc">End User ↑</option>
+            <option value="eu_desc">End User ↓</option>
+            <option value="l_asc">Landed ↑</option>
+            <option value="l_desc">Landed ↓</option>
+          </select>
+          <button class="btn btn-ghost btn-xs" onclick="resetPricingFilters()">↺ Reset</button>
+        </div>
+      </div>
+      <div class="tw">
         <div class="ts"><table><thead id="pricingThead"></thead><tbody id="priceTbl"></tbody></table></div>
       </div>
     </div>
@@ -823,6 +848,42 @@ th.col-drop-right{border-right:2px solid var(--accent)}
   </div>
 </div>
 
+<!-- PRICING EXPORT MODAL -->
+<div class="overlay" id="priceExportModal" onclick="bgc(event,'priceExportModal')">
+  <div class="modal modal-sm">
+    <div class="mhd"><div class="mt2">Export Pricing</div><button class="mx" onclick="closeM('priceExportModal')">✕</button></div>
+    <div class="mbd">
+      <div class="fg2">
+        <label>Price Columns to Include</label>
+        <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg3);border-radius:var(--r2);padding:10px 12px">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_landed" checked/> Landed Price</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_list" checked/> List Price</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_bsp" checked/> BSP</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_dealer" checked/> Dealer Price</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_enduser" checked/> End User / MRP</label>
+        </div>
+      </div>
+      <div class="fg2">
+        <label>Product Columns to Include</label>
+        <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg3);border-radius:var(--r2);padding:10px 12px">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_code" checked/> Product Code</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_cat" checked/> Category</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_brand" checked/> Brand</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_variant" checked/> Variant</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_desc" checked/> Short Description</label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" id="pex_qty"/> Current Stock Qty</label>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">Exports only the rows visible after current filters.</div>
+    </div>
+    <div class="mft">
+      <button class="btn btn-ghost" onclick="closeM('priceExportModal')">Cancel</button>
+      <button class="btn btn-ghost btn-sm" onclick="doPriceExport('excel')">⬇ Excel</button>
+      <button class="btn btn-primary btn-sm" onclick="doPriceExport('pdf')">📄 PDF</button>
+    </div>
+  </div>
+</div>
+
 <!-- PRICING MODAL -->
 <div class="overlay" id="priceModal" onclick="bgc(event,'priceModal')">
   <div class="modal modal-sm">
@@ -1235,7 +1296,7 @@ function showTab(name){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   g('t-'+name).classList.add('active');
   document.querySelectorAll('.ni').forEach(n=>{if(n.textContent.toLowerCase().includes(name.slice(0,5)))n.classList.add('active');});
-  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:renderPricing,statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>{showMvDir(0);},bulkupload:()=>{},ageing:()=>renderAgeing(),recycle:()=>renderRecycle()})[name]?.();
+  ({dashboard:renderDash,products:()=>{popFilters();renderProducts();},stock:renderStock,pricing:()=>{popPricingFilters();renderPricing();},statement:()=>{popStmtFilters();renderStatement();},changelog:renderChangelog,users:renderUsers,export:()=>{popExFilters();renderExport();},movement:()=>{showMvDir(0);},bulkupload:()=>{},ageing:()=>renderAgeing(),recycle:()=>renderRecycle()})[name]?.();
 }
 function renderAll(){renderDash();popFilters();renderProducts();renderStock();if(cu?.role==='admin'){renderPricing();renderUsers();}popStmtFilters();renderStatement();popExFilters();renderExport();renderChangelog();renderMv(_mvSecActive);}
 function popAllFilters(){popFilters();popStmtFilters();popExFilters();popAgeFilters();}
@@ -1587,10 +1648,41 @@ async function updateQty(id){
 // ══════════════════════════════════════════════════════
 // PRICING
 // ══════════════════════════════════════════════════════
+function popPricingFilters(){
+  const cats=[...new Set(products.map(p=>p.category))].sort();
+  const brands=[...new Set(products.map(p=>p.brand))].sort();
+  ['prCatF','prBrandF'].forEach(id=>{
+    const el=g(id);if(!el)return;
+    const v=el.value;
+    el.innerHTML=(id==='prCatF'?'<option value="">All Categories</option>':'<option value="">All Brands</option>')
+      +(id==='prCatF'?cats:brands).map(x=>`<option>${x}</option>`).join('');
+    el.value=v;
+  });
+}
+
+function resetPricingFilters(){
+  sv('prsrch','');sv('prCatF','');sv('prBrandF','');sv('prPricedF','');sv('pricingSort','');
+  renderPricing();
+}
+
+function getPricingRows(){
+  const s=gv('prsrch').toLowerCase();
+  const cat=gv('prCatF'),brand=gv('prBrandF'),priced=gv('prPricedF');
+  let fl=products.filter(p=>{
+    if(cat&&p.category!==cat)return false;
+    if(brand&&p.brand!==brand)return false;
+    if(s&&!(p.code+p.short_desc+p.brand+(p.variant||'')+p.category).toLowerCase().includes(s))return false;
+    if(priced==='priced'&&!_dbPricing[p.id])return false;
+    if(priced==='unpriced'&&_dbPricing[p.id])return false;
+    return true;
+  });
+  return srt(fl,gv('pricingSort'));
+}
+
 function renderPricing(){
-  const s=gv('prsrch').toLowerCase(),cols=getVC('pricing');
-  let fl=products.filter(p=>!s||(p.code+p.short_desc+p.brand).toLowerCase().includes(s));
-  fl=srt(fl,gv('pricingSort'));
+  popPricingFilters();
+  const cols=getVC('pricing');
+  const fl=getPricingRows();
   g('pricingThead').innerHTML='<tr>'+cols.map((c,ci)=>{
     const skip=c.fixed||c.key==='actions';
     return `<th style="min-width:${c.w||80}px" class="${skip?'':'sortable col-drag'}" draggable="${!skip}" onclick="thSort('pricing','${c.key}','${skip}')" ondragstart="thDragStart(event,'pricing',${ci})" ondragover="thDragOver(event,${ci})" ondrop="thDrop(event,'pricing',${ci})" ondragleave="thDragLeave(event)">${c.label}</th>`;
@@ -1628,6 +1720,89 @@ async function savePricing(){
     closeM('priceModal');renderPricing();renderDash();renderStatement();notif('Pricing saved!','s');
   }catch(e){notif('Save failed: '+e.message,'e');}
   finally{setBtnLoad('savePriceBtn',null,'Save Pricing');}
+}
+
+function openPriceExportModal(){
+  showO('priceExportModal');
+}
+
+function doPriceExport(type){
+  const rows=getPricingRows();
+  if(!rows.length){notif('No products to export','e');return;}
+  // Which product columns
+  const inclCode=g('pex_code')?.checked;
+  const inclCat=g('pex_cat')?.checked;
+  const inclBrand=g('pex_brand')?.checked;
+  const inclVariant=g('pex_variant')?.checked;
+  const inclDesc=g('pex_desc')?.checked;
+  const inclQty=g('pex_qty')?.checked;
+  // Which price columns
+  const inclLanded=g('pex_landed')?.checked;
+  const inclList=g('pex_list')?.checked;
+  const inclBsp=g('pex_bsp')?.checked;
+  const inclDealer=g('pex_dealer')?.checked;
+  const inclEndUser=g('pex_enduser')?.checked;
+
+  const prodCols=[];
+  if(inclCode)prodCols.push({key:'code',label:'Code'});
+  if(inclCat)prodCols.push({key:'category',label:'Category'});
+  if(inclBrand)prodCols.push({key:'brand',label:'Brand'});
+  if(inclVariant)prodCols.push({key:'variant',label:'Variant'});
+  if(inclDesc)prodCols.push({key:'short_desc',label:'Description'});
+  if(inclQty)prodCols.push({key:'qty',label:'Stock Qty'});
+
+  const priceCols=[];
+  if(inclLanded)priceCols.push({key:'landed',label:'Landed ₹'});
+  if(inclList)priceCols.push({key:'list_price',label:'List Price ₹'});
+  if(inclBsp)priceCols.push({key:'bsp',label:'BSP ₹'});
+  if(inclDealer)priceCols.push({key:'dealer_price',label:'Dealer ₹'});
+  if(inclEndUser)priceCols.push({key:'end_user_price',label:'End User ₹'});
+
+  const allCols=[...prodCols,...priceCols];
+  if(!allCols.length){notif('Select at least one column','e');return;}
+
+  if(type==='excel'){
+    const h=allCols.map(c=>c.label);
+    const d=[h,...rows.map(p=>{
+      const pr=_dbPricing[p.id]||{};
+      return allCols.map(c=>{
+        if(priceCols.find(pc=>pc.key===c.key))return pr[c.key]?parseFloat(pr[c.key]).toFixed(2):'';
+        return p[c.key]||'';
+      });
+    })];
+    const ws=XLSX.utils.aoa_to_sheet(d);
+    ws['!cols']=h.map(()=>({wch:20}));
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Price List');
+    XLSX.writeFile(wb,`Visdil_PriceList_${yyyymmdd()}.xlsx`);
+    notif('Excel downloaded!','s');
+    closeM('priceExportModal');
+  } else {
+    // PDF
+    const headers=allCols.map(c=>`<th>${c.label}</th>`).join('');
+    const trs=rows.map(p=>{
+      const pr=_dbPricing[p.id]||{};
+      return '<tr>'+allCols.map(c=>{
+        if(priceCols.find(pc=>pc.key===c.key)){
+          const v=pr[c.key];
+          return `<td style="font-weight:${v?'600':'400'};color:${v?'#059669':'#aaa'}">${v?'₹'+parseFloat(v).toFixed(2):'—'}</td>`;
+        }
+        return `<td>${p[c.key]||'—'}</td>`;
+      }).join('')+'</tr>';
+    }).join('');
+    const filterDesc=[
+      gv('prCatF')?`Category: ${gv('prCatF')}`:'',
+      gv('prBrandF')?`Brand: ${gv('prBrandF')}`:'',
+      gv('prPricedF')?gv('prPricedF'):'',
+    ].filter(Boolean).join(' | ')||'All Products';
+    printPage('Price List',`
+      <p style="margin-bottom:8px;font-size:9px;color:#555">Filter: ${filterDesc} | Total: ${rows.length} products</p>
+      <table>
+        <thead><tr>${headers}</tr></thead>
+        <tbody>${trs}</tbody>
+      </table>`);
+    closeM('priceExportModal');
+  }
 }
 
 // ══════════════════════════════════════════════════════
